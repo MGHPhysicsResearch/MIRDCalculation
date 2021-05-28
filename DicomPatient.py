@@ -24,6 +24,34 @@ class DicomPatient:
             if hasattr(f, 'Modality') and f.Modality == modality:
                 modfiles.append(f)
         self.dcmFiles = modfiles
+        
+    def GetImageInfo(self):
+        # Assumes that all slices have same characteristics
+        self.pixelSpacing = self.dcmFiles[0].PixelSpacing
+        self.sliceThickness = self.dcmFiles[0].SliceThickness
+        self.axAspect = self.pixelSpacing[1] / self.pixelSpacing[0]
+        self.sagAspect = self.pixelSpacing[1] / self.sliceThickness
+        self.corAspect = self.sliceThickness / self.pixelSpacing[0]
+        
+    def GetVoxelDICOMPosition(self, ix, iy, iz):
+        xpos = self.firstVoxelPosDICOMCoordinates[0] + ix * self.pixelSpacing[0]
+        ypos = self.firstVoxelPosDICOMCoordinates[1] + iy * self.pixelSpacing[1]
+        zpos = self.firstVoxelPosDICOMCoordinates[2] + iz * self.sliceThickness
+        return np.array([xpos, ypos, zpos])
+    
+    def Rescale(self):
+        self.intercept = self.dcmFiles[0].RescaleIntercept
+        self.slope = self.dcmFiles[0].RescaleSlope
+        self.img3D = self.img3D * self.slope + self.intercept
+
+    def plotAxialSlice(self, sliceNumber, colormap='gray'):
+        minx = self.firstVoxelPosDICOMCoordinates[0]
+        miny = self.firstVoxelPosDICOMCoordinates[1]
+        maxx = minx + (self.img3D.shape[0]-1)*self.pixelSpacing[0]
+        maxy = miny + (self.img3D.shape[1]-1)*self.pixelSpacing[1]
+        p = plt.subplot(1,1,1)
+        p.imshow(self.img3D[:,:,sliceNumber], extent=[minx,maxx,miny,maxy], cmap=colormap)
+        p.set_aspect(self.axAspect)
 
 class PatientCT(DicomPatient):
     def __init__(self, dicomDirectory):
@@ -41,52 +69,33 @@ class PatientCT(DicomPatient):
         for f in self.dcmFiles:
             if hasattr(f, 'SliceLocation'):
                 self.slices.append(f)
-        
-    def GetImageInfo(self):
-        # Assumes that all slices have same characteristics
-        self.pixelSpacing = self.slices[0].PixelSpacing
-        self.sliceThickness = self.slices[0].SliceThickness
-        self.axAspect = self.pixelSpacing[1] / self.pixelSpacing[0]
-        self.sagAspect = self.pixelSpacing[1] / self.sliceThickness
-        self.corAspect = self.sliceThickness / self.pixelSpacing[0]
-        
+    
     def GetFrameOfReference(self):
         self.forUID = self.slices[0].FrameOfReferenceUID
         self.firstVoxelPosDICOMCoordinates = self.slices[0].ImagePositionPatient
-        
-    def GetVoxelDICOMPosition(self, ix, iy, iz):
-        xpos = self.firstVoxelPosDICOMCoordinates[0] + ix * self.pixelSpacing[0]
-        ypos = self.firstVoxelPosDICOMCoordinates[1] + iy * self.pixelSpacing[1]
-        zpos = self.firstVoxelPosDICOMCoordinates[2] + iz * self.sliceThickness
-        return np.array([xpos, ypos, zpos])
         
     def ReadPixelValues(self):
         imgShape = list(self.slices[0].pixel_array.shape)
         imgShape.append(len(self.slices))
         self.img3D = np.zeros(imgShape)
-        
         # Fill 3D array with the images from the files
         for i, s in enumerate(self.slices):
             img2D = s.pixel_array
             self.img3D[:, :, i] = img2D
-            
-    def Rescale(self):
-        self.intercept = self.slices[0].RescaleIntercept
-        self.slope = self.slices[0].RescaleSlope
-        self.img3D = self.img3D * self.slope + self.intercept
-                
-    def plotAxialSlice(self, sliceNumber):
-        minx = self.firstVoxelPosDICOMCoordinates[0]
-        miny = self.firstVoxelPosDICOMCoordinates[1]
-        maxx = minx + (self.img3D.shape[0]-1)*self.pixelSpacing[0]
-        maxy = miny + (self.img3D.shape[1]-1)*self.pixelSpacing[1]
-        p = plt.subplot(1,1,1)
-        p.imshow(self.img3D[:,:,sliceNumber], extent=[minx,maxx,miny,maxy], cmap='gray')
-        p.set_aspect(self.axAspect)
+                            
 
 class Patient3DActivity(DicomPatient):
     def __init__(self, dicomDirectory):
         DicomPatient.__init__(self, dicomDirectory)
         self.FilterByModality('NM')
         print('{} NM slices found'.format(len(self.dcmFiles)))
+        self.GetImageInfo()
+        self.ReadPixelValues()
+        self.GetFrameOfReference()
         
+    def GetFrameOfReference(self):
+        self.forUID = self.dcmFiles[0].FrameOfReferenceUID
+        self.firstVoxelPosDICOMCoordinates = self.dcmFiles[0].DetectorInformationSequence[0].ImagePositionPatient
+        
+    def ReadPixelValues(self):
+        self.img3D = self.dcmFiles[0].pixel_array
