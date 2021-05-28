@@ -39,6 +39,18 @@ class DicomPatient:
         zpos = self.firstVoxelPosDICOMCoordinates[2] + iz * self.sliceThickness
         return np.array([xpos, ypos, zpos])
     
+    def GetLowerIndexesForDicomPosition(self, position):
+        xini = self.firstVoxelPosDICOMCoordinates[0]
+        yini = self.firstVoxelPosDICOMCoordinates[1]
+        zini = self.firstVoxelPosDICOMCoordinates[2]
+        dx = self.pixelSpacing[0]
+        dy = self.pixelSpacing[1]
+        dz = self.sliceThickness
+        ix = np.floor((position[0]-xini)/(dx+1e-6))
+        iy = np.floor((position[1]-yini)/(dy+1e-6))
+        iz = np.floor((position[2]-zini)/(dz+1e-6))
+        return np.array([ix, iy, iz])
+    
     def Rescale(self):
         self.intercept = self.dcmFiles[0].RescaleIntercept
         self.slope = self.dcmFiles[0].RescaleSlope

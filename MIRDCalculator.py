@@ -21,12 +21,12 @@ class MIRDCalculator:
         self.doseAMGrid = np.zeros(shape)
         maxDistance = self.Svalues.maximumDistanceInVoxels
         for iax in range(0, shape[0]):
+            porc = iax/shape[0]*100
+            print("Calculating... (" + str(round(porc,1))+"%)")
             for iay in range(0, shape[1]):
                 for iaz in range(0, shape[2]):
                     act = self.patActMap.img3D[iax, iay, iaz]
                     if act > threshold:
-                        porc = (iaz+iay*shape[2]+iax*shape[1]*shape[2])/(shape[0]*shape[1]*shape[2])*100
-                        print("Calculating... (" + str(round(porc,1))+"%)")
                         for idx in range(0, maxDistance):
                             for idy in range(0, maxDistance):
                                 for idz in range(0, maxDistance):
@@ -92,4 +92,77 @@ class MIRDCalculator:
                                             self.doseAMGrid[iax+idx, iay+idy, iaz-idz] = self.doseAMGrid[iax+idx, iay+idy, iaz-idz] + S * act
                                         if iax+idx < shape[0] and iay+idy < shape[1] and iaz+idz < shape[2]:
                                             self.doseAMGrid[iax+idx, iay+idy, iaz+idz] = self.doseAMGrid[iax+idx, iay+idy, iaz+idz] + S * act
-                                        
+
+    def DoseInterpolationToCTGrid(self, threshold = 0):
+        shape = self.patCT.img3D.shape
+        self.doseCTgrid = np.zeros(shape)
+        for icx in range(0, shape[0]):
+            porc = icx/shape[0]*100
+            print("Interpolating grid... (" + str(round(porc,1))+"%)")
+            for icy in range(0, shape[1]):
+                for icz in range(0, shape[2]):
+                    position = self.patCT.GetVoxelDICOMPosition(icx, icy, icz)
+                    indexes = self.patActMap.GetLowerIndexesForDicomPosition(position)
+                    iax = int(indexes[0])
+                    iay = int(indexes[1])
+                    iaz = int(indexes[2])
+                    # 8 closest vertices. Weight inversely proportional to the distance to each vertex
+                    cumWeight = 0
+                    if iax >= 0 and iay >= 0 and iaz >= 0 and iax < self.patActMap.img3D.shape[0] and iay < self.patActMap.img3D.shape[1] and iaz < self.patActMap.img3D.shape[2]:
+                        if self.doseAMGrid[iax, iay, iaz] > threshold:
+                            pos000 = self.patActMap.GetVoxelDICOMPosition(iax, iay, iaz)
+                            d000 = self.__distance(position, pos000)
+                            if d000 == 0:
+                                self.doseCTgrid[icx, icy, icz] = self.doseAMGrid[iax, iay, iaz]
+                                break
+                            else:
+                                self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] + self.doseAMGrid[iax, iay, iaz] / d000
+                                cumWeight = cumWeight + 1/d000
+                            if iaz + 1 < self.patActMap.img3D.shape[2]:
+                                pos001 = pos000
+                                pos001[2] = pos000[2] + self.patActMap.sliceThickness
+                                d001 = self.__distance(position, pos001)
+                                self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] + self.doseAMGrid[iax, iay, iaz+1] / d001
+                                cumWeight = cumWeight + 1/d001
+                            if iay + 1 < self.patActMap.img3D.shape[1]:
+                                pos010 = pos000
+                                pos010[1] = pos000[1] + self.patActMap.pixelSpacing[1]
+                                d010 = self.__distance(position, pos010)
+                                self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] + self.doseAMGrid[iax, iay+1, iaz] / d010
+                                cumWeight = cumWeight + 1/d010
+                            if iay + 1 < self.patActMap.img3D.shape[1] and iaz + 1 < self.patActMap.img3D.shape[2]:
+                                pos011 = pos001
+                                pos011[1] = pos000[1] + self.patActMap.pixelSpacing[1]
+                                d011 = self.__distance(position, pos011)
+                                self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] + self.doseAMGrid[iax, iay+1, iaz+1] / d011
+                                cumWeight = cumWeight + 1/d011
+                            if iax + 1 < self.patActMap.img3D.shape[0]:
+                                pos100 = pos000
+                                pos100[0] = pos000[0] + self.patActMap.pixelSpacing[0]
+                                d100 = self.__distance(position, pos100)
+                                self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] + self.doseAMGrid[iax+1, iay, iaz] / d100
+                                cumWeight = cumWeight + 1/d100
+                            if iax + 1 < self.patActMap.img3D.shape[0] and iaz + 1 < self.patActMap.img3D.shape[2]:
+                                pos101 = pos001
+                                pos101[0] = pos000[0] + self.patActMap.pixelSpacing[0]
+                                d101 = self.__distance(position, pos101)
+                                self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] + self.doseAMGrid[iax+1, iay, iaz+1] / d101
+                                cumWeight = cumWeight + 1/d101
+                            if iax + 1 < self.patActMap.img3D.shape[0] and iay + 1 < self.patActMap.img3D.shape[1]:
+                                pos110 = pos010
+                                pos110[0] = pos000[0] + self.patActMap.pixelSpacing[0]
+                                d110 = self.__distance(position, pos110)
+                                self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] + self.doseAMGrid[iax+1, iay+1, iaz] / d110
+                                cumWeight = cumWeight + 1/d110
+                            if iax + 1 < self.patActMap.img3D.shape[0] and iay + 1 < self.patActMap.img3D.shape[1] and iaz + 1 < self.patActMap.img3D.shape[2]:
+                                pos111 = pos011
+                                pos111[0] = pos000[0] + self.patActMap.pixelSpacing[0]
+                                d111 = self.__distance(position, pos111)
+                                self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] + self.doseAMGrid[iax+1, iay+1, iaz+1] / d111
+                                cumWeight = cumWeight + 1/d111
+                            self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] / cumWeight
+                    
+    def __distance(self, pos1, pos2):
+        pos1 = np.array(pos1)
+        pos2 = np.array(pos2)
+        return np.sqrt(np.sum(np.power(pos1-pos2, 2)))
