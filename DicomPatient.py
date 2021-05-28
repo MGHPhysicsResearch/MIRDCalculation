@@ -90,6 +90,7 @@ class Patient3DActivity(DicomPatient):
         self.FilterByModality('NM')
         print('{} NM slices found'.format(len(self.dcmFiles)))
         self.GetImageInfo()
+        self.VoxelSize = self.sliceThickness
         self.ReadPixelValues()
         self.GetFrameOfReference()
         
@@ -98,4 +99,10 @@ class Patient3DActivity(DicomPatient):
         self.firstVoxelPosDICOMCoordinates = self.dcmFiles[0].DetectorInformationSequence[0].ImagePositionPatient
         
     def ReadPixelValues(self):
-        self.img3D = self.dcmFiles[0].pixel_array
+        imgShape = list(self.dcmFiles[0].pixel_array.shape[1:])
+        imgShape.append(self.dcmFiles[0].pixel_array.shape[0])
+        self.img3D = np.zeros(imgShape)
+        for i in range(0, self.dcmFiles[0].pixel_array.shape[0]):
+            img2D = self.dcmFiles[0].pixel_array[i,:,:]
+            self.img3D[:,:,i] = img2D
+        
