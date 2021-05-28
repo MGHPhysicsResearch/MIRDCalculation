@@ -11,12 +11,23 @@ import matplotlib.pylab as plt
 from os import listdir
 import numpy as np
 
-class DicomCTPatient:
+class DicomPatient:
     def __init__(self, dicomDirectory):
         filesInDir = listdir(dicomDirectory)
         self.dcmFiles = []
         for fname in filesInDir:
             self.dcmFiles.append(pydicom.dcmread(dicomDirectory + '/' + fname))
+        
+    def FilterByModality(self, modality):
+        modfiles = []
+        for f in self.dcmFiles:
+            if hasattr(f, 'Modality') and f.Modality == modality:
+                modfiles.append(f)
+        self.dcmFiles = modfiles
+
+class PatientCT(DicomPatient):
+    def __init__(self, dicomDirectory):
+        DicomPatient.__init__(self, dicomDirectory)
         self.FilterByModality('CT')
         self.GetSlices()
         print('{} CT slices found'.format(len(self.slices)))
@@ -24,13 +35,6 @@ class DicomCTPatient:
         self.ReadPixelValues()
         self.Rescale()
         self.GetFrameOfReference()
-        
-    def FilterByModality(self, modality):
-        modfiles = []
-        for f in self.dcmFiles:
-            if hasattr(f, 'Modality') and f.Modality == 'CT':
-                modfiles.append(f)
-        self.dcmFiles = modfiles
         
     def GetSlices(self):
         self.slices = []
@@ -79,4 +83,10 @@ class DicomCTPatient:
         p = plt.subplot(1,1,1)
         p.imshow(self.img3D[:,:,sliceNumber], extent=[minx,maxx,miny,maxy], cmap='gray')
         p.set_aspect(self.axAspect)
-    
+
+class Patient3DActivity(DicomPatient):
+    def __init__(self, dicomDirectory):
+        DicomPatient.__init__(self, dicomDirectory)
+        self.FilterByModality('NM')
+        print('{} NM slices found'.format(len(self.dcmFiles)))
+        
