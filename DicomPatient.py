@@ -64,6 +64,9 @@ class DicomPatient:
         p = plt.subplot(1,1,1)
         p.imshow(self.img3D[:,:,sliceNumber], extent=[minx,maxx,miny,maxy], cmap=colormap)
         p.set_aspect(self.axAspect)
+        
+    def WriteRTDose(self, doseGrid, name):
+        pass
 
 class PatientCT(DicomPatient):
     def __init__(self, dicomDirectory):

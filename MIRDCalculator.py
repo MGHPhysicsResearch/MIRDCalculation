@@ -161,6 +161,10 @@ class MIRDCalculator:
                                 self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] + self.doseAMGrid[iax+1, iay+1, iaz+1] / d111
                                 cumWeight = cumWeight + 1/d111
                             self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] / cumWeight
+                            
+        def WriteRTDoseCT(self, name='MIRDDose.dcm', normalizationValue = 1):
+            self.doseCTgrid = self.doseCTgrid * normalizationValue
+            self.patCT.WriteRTDoseCT(self.doseCTgrid, name)
                     
     def __distance(self, pos1, pos2):
         pos1 = np.array(pos1)
