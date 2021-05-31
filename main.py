@@ -13,4 +13,5 @@ nmpath = '2020-12__Studies/DOE^JANE_ANON60446_NM_2020-12-22_131402_Liver.Scan_MA
 countThreshold = 200
 calc = MIRDCalculator(ctpath,nmpath,'Y90')
 calc.CalculateOnActivityMapGrid(countThreshold)
-calc.DoseInterpolationToCTGrid(1)
+calc.DoseInterpolationToCTGrid()
+calc.WriteRTDoseCT()

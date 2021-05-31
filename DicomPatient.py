@@ -8,6 +8,7 @@ Created on Thu May 27 16:09:19 2021
 
 import pydicom
 import matplotlib.pylab as plt
+from datetime import datetime
 from os import listdir
 import numpy as np
 
@@ -66,8 +67,68 @@ class DicomPatient:
         p.set_aspect(self.axAspect)
         
     def WriteRTDose(self, doseGrid, name):
-        pass
-
+        base = self.dcmFiles[0].copy()
+        rtdoseSOPClassUID = '1.2.840.10008.5.1.4.1.1.481.2'
+        rtdosemodality = 'RTDOSE'
+        base.SOPClassUID = rtdoseSOPClassUID
+        base.Modality = rtdosemodality
+        specificRootUID = '1.2.826.0.1.3680043.9.5872.'
+        base.SOPInstanceUID = pydicom.uid.generate_uid(specificRootUID)
+        base.SeriesInstanceUID = pydicom.uid.generate_uid(specificRootUID)
+        base.Manufacturer = 'MIRDCalculator'
+        base.ManufacturerModelName = 'MIRDCalculator v1.0 by abertoletreina@mgh.harvard.edu'
+        # Date and time
+        now = datetime.now()
+        base.StudyDate = now.strftime("%Y%M%d")
+        base.SeriesDate = now.strftime("%Y%M%d")
+        base.AcquisitionDate = now.strftime("%Y%M%d")
+        base.ContentDate = now.strftime("%Y%M%d")
+        base.StudyTime = now.strftime("%H%M%S")
+        base.SeriesTime = now.strftime("%H%M%S")
+        base.AcquisitionTime = now.strftime("%H%M%S")
+        base.ContentTime = now.strftime("%H%M%S")
+        # Reshape dose grid
+        newGrid = self.reshapeZAxis(doseGrid)
+        base.LargestImagePixelValue = int(np.max(newGrid))
+        base.SmallestImagePixelValue = int(np.min(newGrid))
+        base.BitsAllocated = 16
+        base.BitsStored = 16
+        base.HighBit = 15
+        [newGrid, slope, intercept] = self.convertInt16(newGrid)
+        base.RescaleSlope = slope
+        base.RescaleIntercept = intercept
+        base.ImagePositionPatient = self.firstVoxelPosDICOMCoordinates
+        base.NumberOfFrames = newGrid.shape[0]
+        base.PixelData = newGrid.tobytes()
+        base.save_as(name)
+        
+    def reshapeZAxis(self, grid):
+        shape = [grid.shape[2]]
+        shape.append(grid.shape[0])
+        shape.append(grid.shape[1])
+        newgrid = np.zeros(shape)
+        for i in range(0, shape[0]):
+            img2D = grid[:,:,i]
+            newgrid[i,:,:] = img2D
+        return newgrid
+    
+    def convertInt16(self, grid):
+        # Determine scaling
+        maxAbsScoredValue = np.max(grid)
+        minScoredValue = np.min(grid)
+        useSigned = minScoredValue < 0
+        if useSigned:
+            outputScaleFactor = (maxAbsScoredValue - minScoredValue) / 32767
+            newGrid = np.zeros(grid.shape, dtype='int16')
+        else:
+            outputScaleFactor = (maxAbsScoredValue - minScoredValue) / 65535
+            newGrid = np.zeros(grid.shape, dtype='uint16')
+        for i in range(0, grid.shape[0]):
+            for j in range(0, grid.shape[1]):
+                for k in range(0, grid.shape[2]):
+                    newGrid[i,j,k] = int(grid[i,j,k] / outputScaleFactor)
+        return [newGrid, outputScaleFactor, minScoredValue]
+        
 class PatientCT(DicomPatient):
     def __init__(self, dicomDirectory):
         DicomPatient.__init__(self, dicomDirectory)
@@ -84,6 +145,7 @@ class PatientCT(DicomPatient):
         for f in self.dcmFiles:
             if hasattr(f, 'SliceLocation'):
                 self.slices.append(f)
+        self.slices = sorted(self.slices, key=lambda s: s.SliceLocation)
     
     def GetFrameOfReference(self):
         self.forUID = self.slices[0].FrameOfReferenceUID
