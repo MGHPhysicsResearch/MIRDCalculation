@@ -67,7 +67,10 @@ class DicomPatient:
         p.set_aspect(self.axAspect)
         
     def WriteRTDose(self, doseGrid, name):
-        base = self.dcmFiles[0].copy()
+        try:
+            base = self.slices[0].copy()
+        except:
+            base = self.dcmFiles[0].copy()
         rtdoseSOPClassUID = '1.2.840.10008.5.1.4.1.1.481.2'
         rtdosemodality = 'RTDOSE'
         base.SOPClassUID = rtdoseSOPClassUID
@@ -88,17 +91,22 @@ class DicomPatient:
         base.AcquisitionTime = now.strftime("%H%M%S")
         base.ContentTime = now.strftime("%H%M%S")
         # Reshape dose grid
-        newGrid = self.reshapeZAxis(doseGrid)
-        base.LargestImagePixelValue = int(np.max(newGrid))
-        base.SmallestImagePixelValue = int(np.min(newGrid))
+        doseGrid = self.reshapeZAxis(doseGrid)
+        base.LargestImagePixelValue = int(np.max(doseGrid))
+        base.SmallestImagePixelValue = int(np.min(doseGrid))
         base.BitsAllocated = 16
         base.BitsStored = 16
         base.HighBit = 15
-        [newGrid, slope, intercept] = self.convertInt16(newGrid)
+        [newGrid, slope, intercept] = self.convertInt16(doseGrid)
         base.RescaleSlope = slope
         base.RescaleIntercept = intercept
         base.ImagePositionPatient = self.firstVoxelPosDICOMCoordinates
         base.NumberOfFrames = newGrid.shape[0]
+        base.FrameIncrementPointer = (0x3004, 0x000c)
+        frame = []
+        for i in range(0, newGrid.shape[0]):
+            frame.append(i * self.sliceThickness)
+        base.GridFrameOffsetVector = frame
         base.PixelData = newGrid.tobytes()
         base.save_as(name)
         
@@ -145,7 +153,7 @@ class PatientCT(DicomPatient):
         for f in self.dcmFiles:
             if hasattr(f, 'SliceLocation'):
                 self.slices.append(f)
-        self.slices = sorted(self.slices, key=lambda s: s.SliceLocation)
+        self.slices = sorted(self.slices, key=lambda s: s.SliceLocation, reverse=True)
     
     def GetFrameOfReference(self):
         self.forUID = self.slices[0].FrameOfReferenceUID

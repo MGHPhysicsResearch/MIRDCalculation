@@ -165,6 +165,10 @@ class MIRDCalculator:
     def WriteRTDoseCT(self, name='MIRDDose.dcm', normalizationValue = 1):
         self.doseCTgrid = self.doseCTgrid * normalizationValue
         self.patCT.WriteRTDose(self.doseCTgrid, name)
+
+    def WriteRTDoseAM(self, name='MIRDDose.dcm', normalizationValue = 1):
+        self.doseAMGrid = self.doseAMGrid * normalizationValue
+        self.patCT.WriteRTDose(self.doseAMGrid, name)
                     
     def __distance(self, pos1, pos2):
         pos1 = np.array(pos1)
