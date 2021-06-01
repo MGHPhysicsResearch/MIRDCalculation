@@ -166,12 +166,12 @@ class MIRDCalculator:
                                 cumWeight = cumWeight + 1/d111
                             self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] / cumWeight
                             
-    def WriteRTDoseCT(self, name='MIRDDose.dcm', normalizationValue = 1):
-        self.doseCTgrid = self.doseCTgrid * normalizationValue
+    def WriteRTDoseCT(self, name='MIRDDose.dcm', unit = 1):
+        self.doseCTgrid = self.doseCTgrid / unit
         self.patCT.WriteRTDose(self.doseCTgrid, name)
 
-    def WriteRTDoseAM(self, name='MIRDDose.dcm', normalizationValue = 1):
-        self.doseAMGrid = self.doseAMGrid * normalizationValue
+    def WriteRTDoseAM(self, name='MIRDDose.dcm', unit = 1):
+        self.doseAMGrid = self.doseAMGrid / unit
         self.patCT.WriteRTDose(self.doseAMGrid, name)
                     
     def __distance(self, pos1, pos2):
