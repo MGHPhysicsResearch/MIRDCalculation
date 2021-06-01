@@ -66,7 +66,7 @@ class DicomPatient:
         p.imshow(self.img3D[:,:,sliceNumber], extent=[minx,maxx,miny,maxy], cmap=colormap)
         p.set_aspect(self.axAspect)
         
-    def WriteRTDose(self, doseGrid, name):
+    def WriteRTDose(self, doseGrid, name, unit):
         try:
             base = self.slices[0].copy()
         except:
@@ -103,7 +103,7 @@ class DicomPatient:
         del base.RescaleIntercept
         base.DoseGridScaling = slope
         base.DoseSummationType = 'PLAN'
-        base.DoseUnits = 'RELATIVE'
+        base.DoseUnits = unit
         base.ImagePositionPatient = self.firstVoxelPosDICOMCoordinates
         base.NumberOfFrames = newGrid.shape[0]
         base.FrameIncrementPointer = (0x3004, 0x000c)

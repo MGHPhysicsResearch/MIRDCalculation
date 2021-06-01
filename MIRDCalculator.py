@@ -10,11 +10,16 @@ import DicomPatient as dcmpat
 import Svalues
 import numpy as np
 
+# Units
+mCi = 37 #1mCi = 37 MBq
+Gy = 1e3 #1 Gy = 1000 mGy
+
 class MIRDCalculator:
     def __init__(self, CTpath, NMpath, radionuclide):
         self.patCT = dcmpat.PatientCT(CTpath)
         self.patActMap = dcmpat.Patient3DActivity(NMpath)
         self.Svalues = Svalues.SValuesData(radionuclide)
+        self.accumulate = False
         
     def CalculateOnActivityMapGrid(self, threshold = 0, tissue = 'Soft', normalize = False, accumulate = False):
         shape = self.patActMap.img3D.shape
@@ -95,7 +100,8 @@ class MIRDCalculator:
         if normalize:
             self.doseAMGrid = self.doseAMGrid / self.patActMap.totalCounts
         if accumulate:
-            self.doseAMGrid = self.doseAMGrid / self.Svalues.decayConstant                                
+            self.doseAMGrid = self.doseAMGrid / self.Svalues.decayConstant
+            self.accumulate = True
                     
     def DoseInterpolationToCTGrid(self, threshold = 0):
         shape = self.patCT.img3D.shape
@@ -166,13 +172,31 @@ class MIRDCalculator:
                                 cumWeight = cumWeight + 1/d111
                             self.doseCTgrid[icx,icy,icz] = self.doseCTgrid[icx,icy,icz] / cumWeight
                             
-    def WriteRTDoseCT(self, name='MIRDDose.dcm', unit = 1):
-        self.doseCTgrid = self.doseCTgrid / unit
-        self.patCT.WriteRTDose(self.doseCTgrid, name)
+    def WriteRTDoseCT(self, name='MIRDDose.dcm', unit = 'mGy/MBq'):
+        fn = 1
+        if unit == 'mGy/mCi':
+            fn = 1/mCi
+        elif unit == 'Gy/MBq':
+            fn = Gy
+        elif unit == 'Gy/mCi':
+            fn = Gy/mCi
+        if not self.accumulate:
+            unit = unit + ' s';
+        self.doseCTgrid = self.doseCTgrid / fn
+        self.patCT.WriteRTDose(self.doseCTgrid, name, unit)
 
-    def WriteRTDoseAM(self, name='MIRDDose.dcm', unit = 1):
-        self.doseAMGrid = self.doseAMGrid / unit
-        self.patCT.WriteRTDose(self.doseAMGrid, name)
+    def WriteRTDoseAM(self, name='MIRDDose.dcm', unit = 'mGy/MBq'):
+        fn = 1
+        if unit == 'mGy/mCi':
+            fn = 1/mCi
+        elif unit == 'Gy/MBq':
+            fn = Gy
+        elif unit == 'Gy/mCi':
+            fn = Gy/mCi
+        if not self.accumulate:
+            unit = unit + ' s';
+        self.doseAMGrid = self.doseAMGrid / fn
+        self.patCT.WriteRTDose(self.doseAMGrid, name, unit)
                     
     def __distance(self, pos1, pos2):
         pos1 = np.array(pos1)

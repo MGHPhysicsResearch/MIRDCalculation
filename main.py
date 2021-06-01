@@ -8,10 +8,6 @@ Created on Fri May 28 18:10:01 2021
 
 from MIRDCalculator import *
 
-# Units
-mCi = 37 #1mCi = 37 MBq
-Gy = 1e3 #1 Gy = 1000 mGy
-
 #############################################
 ############ USER PARAMETERS ################
 #############################################
@@ -26,7 +22,7 @@ tissue = 'Soft'
 # 3. If normalize, calcs refer to 1MBq as total absorption
 norm = True
 # 4. Unit = 1 refers to mGy/MBq. Select the desired unit (using Gy and/or mCi instead)
-unit = Gy / mCi
+unit = 'Gy/mCi'
 # 5. If accumulated activity, calcs assume stationary activity until complete decay
 accum = True
 # 6. Threshold of counts to be considered in activity map (to speed up calculation)
