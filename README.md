@@ -2,7 +2,7 @@
 Python application to calculate internal dosimetry following MIRD formulation
 
 This python-based application calculates doses in Nuclear Medicine applications.
-MIRDCalculator takes a SPECT or PET image and computes the dose values based on the voxel-based S-values published by [Lanconelli et al.][1].
+MIRDCalculator takes a SPECT or PET image and computes the dose values based on the voxel-based S-values published by [Lanconelli et al.] [1].
 Supported radionuclides in this database are 89Sr, 90Y, 131I, 153Sm, 177Lu, 186Re and 188Re.
 Dose is calculated using the voxel sizes in the activity map and then it is interpolated to the CT grid.
 The interpolation method uses the inverse of the distance between each node in the CT grid and the 8 closest nodes in the SPECT/PET grid to weight each contribution.
