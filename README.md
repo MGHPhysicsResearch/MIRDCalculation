@@ -21,5 +21,7 @@ In the 'main.py' file the following parameters are specified:
 * (int) countThreshold: threshold of counts in the activity map to be considered in the calculation (for speed reasons)
 * (string) nameDcm: name of the RTDOSE Dicom file with the calculated dose
 
+Once all parameters are specified, run the file 'main.py' as a Python3 application.
+
 ### References:
 [1]: Lanconelli N, Pacilio M, Meo S Lo, Botta F, Dia A Di, Aroche L A T, Pérez M A C and Cremonesi M 2012 A free database of radionuclide voxel S values for the dosimetry of nonuniform activity distributions Phys. Med. Biol. 57 517–33
