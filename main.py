@@ -9,7 +9,7 @@ Created on Fri May 28 18:10:01 2021
 from MIRDCalculator import *
 
 # Units
-mCi = 37 #1mCi = 37 mBq
+mCi = 37 #1mCi = 37 MBq
 Gy = 1e3 #1 Gy = 1000 mGy
 
 #############################################
