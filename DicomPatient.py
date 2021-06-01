@@ -80,6 +80,7 @@ class DicomPatient:
         base.SeriesInstanceUID = pydicom.uid.generate_uid(specificRootUID)
         base.Manufacturer = 'MIRDCalculator'
         base.ManufacturerModelName = 'MIRDCalculator v1.0 by abertoletreina@mgh.harvard.edu'
+        base.SeriesDescription = 'Dose-MIRDCalculator'
         # Date and time
         now = datetime.now()
         base.StudyDate = now.strftime("%Y%M%d")
