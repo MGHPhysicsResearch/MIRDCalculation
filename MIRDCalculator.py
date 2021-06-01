@@ -16,7 +16,7 @@ class MIRDCalculator:
         self.patActMap = dcmpat.Patient3DActivity(NMpath)
         self.Svalues = Svalues.SValuesData(radionuclide)
         
-    def CalculateOnActivityMapGrid(self, threshold = 0, normalize = False, accumulate = False):
+    def CalculateOnActivityMapGrid(self, threshold = 0, tissue = 'Soft', normalize = False, accumulate = False):
         shape = self.patActMap.img3D.shape
         self.doseAMGrid = np.zeros(shape)
         maxDistance = self.Svalues.maximumDistanceInVoxels
@@ -30,7 +30,7 @@ class MIRDCalculator:
                         for idx in range(0, maxDistance):
                             for idy in range(0, maxDistance):
                                 for idz in range(0, maxDistance):
-                                    S = self.Svalues.GetSValue(self.patActMap.VoxelSize, idx, idy, idz)
+                                    S = self.Svalues.GetSValue(self.patActMap.VoxelSize, idx, idy, idz, tissue)
                                     if idx == 0 and idy == 0 and idz == 0:
                                         self.doseAMGrid[iax, iay, iaz] = self.doseAMGrid[iax, iay, iaz] + S * act
                                     elif idx == 0 and idy == 0:
