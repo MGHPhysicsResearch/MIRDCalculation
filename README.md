@@ -16,7 +16,7 @@ In the 'main.py' file the following parameters are specified:
 * (string) nmpath: path to the directory in which the activity map image (in DICOM format) is located
 * (string) tissue: choose between 'Soft' and 'Bone' to use the corresponding S-values in [1]
 * (boolean) norm: if selected, the activity map counts are normalized to 1, so that 1 MBq is assumed as the overall uptake
-* (float) unit: can be 1 (results in mGy/MBq), Gy (results in Gy/MBq), 1/mCi (results in (mGy/MBq) or Gy/mCi (results in Gy/mCi)
+* (string) unit: can be 'mGy/MBq', 'Gy/MBq', 'mGy/MBq' or 'Gy/mCi'. If accumulated activity is not selected, then the units are mGy/(MBq s) and so on.
 * (boolean) accum: if selected, accumulated activity is calculated assuming complete decay at the image positions
 * (int) countThreshold: threshold of counts in the activity map to be considered in the calculation (for speed reasons)
 * (string) nameDcm: name of the RTDOSE Dicom file with the calculated dose
