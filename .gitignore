@@ -1,1 +1,5 @@
 .DS_Store
+*.dcm
+2020-12__Studies/
+2020-09__Studies-JohnDoe/
+__pycache__/

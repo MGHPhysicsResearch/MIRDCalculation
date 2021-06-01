@@ -178,6 +178,7 @@ class Patient3DActivity(DicomPatient):
         self.VoxelSize = self.sliceThickness
         self.ReadPixelValues()
         self.GetFrameOfReference()
+        self.totalCounts = np.sum(self.img3D)
         
     def GetFrameOfReference(self):
         self.forUID = self.dcmFiles[0].FrameOfReferenceUID
@@ -190,4 +191,5 @@ class Patient3DActivity(DicomPatient):
         for i in range(0, self.dcmFiles[0].pixel_array.shape[0]):
             img2D = self.dcmFiles[0].pixel_array[i,:,:]
             self.img3D[:,:,i] = img2D
+        
         

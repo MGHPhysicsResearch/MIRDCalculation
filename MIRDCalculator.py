@@ -16,7 +16,7 @@ class MIRDCalculator:
         self.patActMap = dcmpat.Patient3DActivity(NMpath)
         self.Svalues = Svalues.SValuesData(radionuclide)
         
-    def CalculateOnActivityMapGrid(self, threshold = 0):
+    def CalculateOnActivityMapGrid(self, threshold = 0, normalize = False, accumulate = False):
         shape = self.patActMap.img3D.shape
         self.doseAMGrid = np.zeros(shape)
         maxDistance = self.Svalues.maximumDistanceInVoxels
@@ -92,7 +92,11 @@ class MIRDCalculator:
                                             self.doseAMGrid[iax+idx, iay+idy, iaz-idz] = self.doseAMGrid[iax+idx, iay+idy, iaz-idz] + S * act
                                         if iax+idx < shape[0] and iay+idy < shape[1] and iaz+idz < shape[2]:
                                             self.doseAMGrid[iax+idx, iay+idy, iaz+idz] = self.doseAMGrid[iax+idx, iay+idy, iaz+idz] + S * act
-
+        if normalize:
+            self.doseAMGrid = self.doseAMGrid / self.patActMap.totalCounts
+        if accumulate:
+            self.doseAMGrid = self.doseAMGrid / self.Svalues.decayConstant                                
+                    
     def DoseInterpolationToCTGrid(self, threshold = 0):
         shape = self.patCT.img3D.shape
         self.doseCTgrid = np.zeros(shape)

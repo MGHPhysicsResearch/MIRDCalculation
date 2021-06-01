@@ -34,6 +34,24 @@ class SValuesData:
                     self.maximumDistanceInVoxels = shape[2]
         self.datasets.sort(key=lambda x:x.voxelsize)
         self.isthereradionuclide = True
+        # Units for half life
+        hour = 3600
+        day = 24*hour
+        if radionuclide == '89Sr':
+            self.halflife = 50.5*day
+        elif radionuclide == '90Y':
+            self.halflife = 64.2*hour
+        elif radionuclide == '131I':
+            self.halflife = 8.02*day
+        elif radionuclide == '153Sm':
+            self.halflife = 46.3*hour
+        elif radionuclide == '177Lu':
+            self.halflife = 6.647*day
+        elif radionuclide == '186Re':
+            self.halflife = 3.8*day
+        elif radionuclide == '188Re':
+            self.halflife = 16.98*hour
+        self.decayConstant = np.log(2) / self.halflife
 
     def GetSValue(self, voxelSize, voxelsX, voxelsY, voxelsZ, tissue = 'Soft'):
         if not self.isthereradionuclide:
