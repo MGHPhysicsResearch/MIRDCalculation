@@ -9,7 +9,7 @@ The interpolation method uses the inverse of the distance between each node in t
 
 *Requirement*: Python3 installed with pydicom (https://github.com/pydicom/pydicom)
 
-##Use:
+## Use:
 Download the complete package; install Python3 and pydicom. 
 In the 'main.py' file the following parameters are specified:
 * (string) ctpath: path to the directory in which CT study is located
@@ -21,5 +21,5 @@ In the 'main.py' file the following parameters are specified:
 * (int) countThreshold: threshold of counts in the activity map to be considered in the calculation (for speed reasons)
 * (string) nameDcm: name of the RTDOSE Dicom file with the calculated dose
 
-###References:
+### References:
 [1]: Lanconelli N, Pacilio M, Meo S Lo, Botta F, Dia A Di, Aroche L A T, Pérez M A C and Cremonesi M 2012 A free database of radionuclide voxel S values for the dosimetry of nonuniform activity distributions Phys. Med. Biol. 57 517–33
