@@ -98,9 +98,12 @@ class DicomPatient:
         base.BitsAllocated = 16
         base.BitsStored = 16
         base.HighBit = 15
-        [newGrid, slope, intercept] = self.convertInt16(doseGrid)
-        base.RescaleSlope = slope
-        base.RescaleIntercept = intercept
+        [newGrid, slope] = self.convertInt16(doseGrid)
+        del base.RescaleSlope
+        del base.RescaleIntercept
+        base.DoseGridScaling = slope
+        base.DoseSummationType = 'PLAN'
+        base.DoseUnits = 'RELATIVE'
         base.ImagePositionPatient = self.firstVoxelPosDICOMCoordinates
         base.NumberOfFrames = newGrid.shape[0]
         base.FrameIncrementPointer = (0x3004, 0x000c)
@@ -136,7 +139,7 @@ class DicomPatient:
             for j in range(0, grid.shape[1]):
                 for k in range(0, grid.shape[2]):
                     newGrid[i,j,k] = int(grid[i,j,k] / outputScaleFactor)
-        return [newGrid, outputScaleFactor, minScoredValue]
+        return [newGrid, outputScaleFactor]
         
 class PatientCT(DicomPatient):
     def __init__(self, dicomDirectory):
