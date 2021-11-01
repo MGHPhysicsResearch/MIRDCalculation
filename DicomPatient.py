@@ -11,9 +11,11 @@ import matplotlib.pylab as plt
 from datetime import datetime
 from os import listdir
 import numpy as np
+from rt_utils import RTStructBuilder
 
 class DicomPatient:
     def __init__(self, dicomDirectory):
+        self.dicomDirectory = dicomDirectory
         filesInDir = listdir(dicomDirectory)
         self.dcmFiles = []
         for fname in filesInDir:
@@ -140,6 +142,19 @@ class DicomPatient:
                 for k in range(0, grid.shape[2]):
                     newGrid[i,j,k] = int(grid[i,j,k] / outputScaleFactor)
         return [newGrid, outputScaleFactor]
+        
+    def GetStructureArray(self, RTStructPath, ROIName):
+        rtstruct = RTStructBuilder.create_from(self.dicomDirectory, RTStructPath)
+        Structure3D = rtstruct.get_roi_mask_by_name(ROIName)
+        return Structure3D
+        
+    def GetStructuresDict(self, RTStructPath):
+        rtstruct = RTStructBuilder.create_from(self.dicomDirectory, RTStructPath)
+        self.ROINames = rtstruct.get_roi_names()
+        Structures3DList = []
+        for s in self.ROINames:
+            Structures3DList.append(rtstruct.get_roi_mask_by_name(s))
+        self.Structures3D = dict(zip(self.ROINames, Structures3DList))
         
 class PatientCT(DicomPatient):
     def __init__(self, dicomDirectory):
