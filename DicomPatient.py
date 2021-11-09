@@ -143,18 +143,40 @@ class DicomPatient:
                     newGrid[i,j,k] = int(grid[i,j,k] / outputScaleFactor)
         return [newGrid, outputScaleFactor]
         
-    def GetStructureArray(self, RTStructPath, ROIName):
-        rtstruct = RTStructBuilder.create_from(self.dicomDirectory, RTStructPath)
-        Structure3D = rtstruct.get_roi_mask_by_name(ROIName)
-        return Structure3D
+    def LoadStructures(self, RTStructPath, ROIsList=None):
+        '''
+        Loads structures from DICOM RTStruct file as 3D arrays. Arrays are stored in a dictionary.
+        Function loads all structures if ROIsList is not specified.
         
-    def GetStructuresDict(self, RTStructPath):
+        Args:
+            RTStructPath --> path to input RTStruct file (string)
+            ROIsList --> list containing structure names (list of strings)
+        '''
         rtstruct = RTStructBuilder.create_from(self.dicomDirectory, RTStructPath)
-        self.ROINames = rtstruct.get_roi_names()
-        Structures3DList = []
+        if ROIsList is None:
+            self.ROINames = rtstruct.get_roi_names()
+        else:
+            self.ROINames = ROIsList
+        structures3DList = []
         for s in self.ROINames:
-            Structures3DList.append(rtstruct.get_roi_mask_by_name(s))
-        self.Structures3D = dict(zip(self.ROINames, Structures3DList))
+            structures3DList.append(rtstruct.get_roi_mask_by_name(s))
+        self.structures3D = dict(zip(self.ROINames, structures3DList))
+        print('Structures loaded.')
+        
+    def LoadDoseArray(self, RTDosePath, doseScale=1):
+        '''
+        Loads dose from DICOM RTDose file as 3D array.
+        
+        Args:
+            RTDosePath --> path to input RTDose file (string)
+            doseScale --> scale to apply to dose distribution (int / float)
+        '''
+        ds = pydicom.read_file(RTDosePath)
+        dose_arr = ds.pixel_array*doseScale
+        dose_arr = np.swapaxes(dose_arr, 0,2)
+        dose_arr = np.swapaxes(dose_arr, 0,1)
+        self.doseArray = dose_arr
+        print('Dose array loaded.')
         
 class PatientCT(DicomPatient):
     def __init__(self, dicomDirectory):
