@@ -12,14 +12,15 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 class EvaluationManager:
-    def __init__(self, structureArrays, doseArray):
+    def __init__(self, structureArrays, doseArray, unit=''):
         self.structureArrays = structureArrays
         self.ROINames = [i for i in structureArrays]
         self.doseArray = doseArray
         self.maxDose =  np.max(doseArray)
         self.CalculateDVHs()
+        self.unit = unit
         
-    def CalculateDVHs(self, numBins=None):
+    def CalculateDVHs(self, numBins=1000):
         self.DVHDataFrame = pd.DataFrame()
         self.maxDose = np.max(self.doseArray)
         for ROIName in self.ROINames:
@@ -52,27 +53,26 @@ class EvaluationManager:
     def GetMinDose(self, ROIName):
         return np.min(self.GetStructureDose(ROIName))
 
-    def EvaluateV(self, stat, ROIName, prescription):
+    def EvaluateV(self, dose, ROIName):
         DVHDose = self.DVHDataFrame['Dose']
         DVHVolume = self.DVHDataFrame[ROIName]
         f = interp1d(DVHDose, DVHVolume)
-        return float(f(stat/100*prescription))
+        return float(f(dose))
 
-    def EvaluateD(self, stat, ROIName, prescription):
+    def EvaluateD(self, volume, ROIName):
         DVHDose = self.DVHDataFrame['Dose']
         DVHVolume = self.DVHDataFrame[ROIName]
         f = interp1d(DVHVolume, DVHDose)
-        return float(f(stat/100))/prescription
+        return float(f(volume))
     
-    def PlotDVHs(self, doseUnit=None):
+    def PlotDVHs(self):
         fig = plt.figure(figsize=(6,4), dpi=300)
         ax = fig.add_subplot(1,1,1)
         xAxis = self.DVHDataFrame['Dose']
         for ROIName in self.ROINames:
             yAxis = self.DVHDataFrame[ROIName]*100
             ax.plot(xAxis, yAxis, label=ROIName, linewidth=1.5)
-            doseUnit = '?' if doseUnit is None else doseUnit
-            plt.xlabel('Dose [{}]'.format(doseUnit))
+            plt.xlabel('Dose [{}]'.format(self.unit))
             plt.ylabel('Volume [%]')
             plt.legend()
             plt.grid(alpha=0.7, ls='--')
