@@ -1,4 +1,4 @@
-# MIRDCalculator v1.0
+# MIRDCalculator v1.1.0
 Python application to calculate internal dosimetry following MIRD formulation
 
 This python-based application calculates doses in Nuclear Medicine applications.
