@@ -10,7 +10,7 @@ from distutils.core import setup
 from setuptools import find_packages, Command
 
 # Package meta-data
-NAME = 'MIRDCalculation'
+NAME = 'MIRDCalculator'
 DESCRIPTION = 'Calculation of internal dosimetry in radionuclide applications with the MIRD formalism'
 URL = 'https://github.com/mghro/MIRDCalculation'
 EMAIL = 'abertoletreina@mgh.harvard.edu'

@@ -1,0 +1,6 @@
+numpy
+pydicom
+rt_utils
+
+[plots]
+matplotlib
