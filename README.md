@@ -22,10 +22,9 @@ To calculate MIRD dose and store it in DICOM RTDOSE format you need:
 
 The parameters of this method are:
 * (string) basepath: path to the directory in which CT and NM studies are located. It is assumed the structure for both is basepath/CT/ and basepath/NM/, respectively.
-* (string) tissue: choose between 'Soft' and 'Bone' to use the corresponding S-values in [1]
 * (string) nameDicom: name of the RTDOSE Dicom file with the calculated dose. It is stored in the folder basepath
 * (string) radionuclide: name of the radionuclide considered ('89Sr', '90Y', '131I', '153Sm', '177Lu', '186Re' ot '188Re')
-* [OPTIONAL - default is 'Soft] (string) tissue: specifies what tissue is used for calculation (either 'Soft' or 'Bone')
+* [OPTIONAL - default is 'Soft] (string) tissue: specifies what tissue is used for calculation (either 'Soft' or 'Bone' in [1])
 * [OPTIONAL - default is True] (boolean) norm: if selected, the activity map counts are normalized to 1, so that 1 MBq is assumed as the overall uptake
 * [OPTIONAL - default is 'Gy/mCi'] (string) unit: can be 'mGy/MBq', 'Gy/MBq', 'mGy/MBq' or 'Gy/mCi'. If accumulated activity is not selected, then the units are mGy/(MBq s) and so on.
 * [OPTIONAL - default is True] (boolean) accum: if selected, accumulated activity is calculated assuming complete decay at the image positions
