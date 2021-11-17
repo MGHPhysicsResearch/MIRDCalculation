@@ -31,7 +31,7 @@ The parameters of this method are:
 * [OPTIONAL - default is True] (boolean) accum: if selected, accumulated activity is calculated assuming complete decay at the image positions
 * [OPTIONAL - default is 0] (int) countThreshold: threshold of counts in the activity map to be considered in the calculation (for speed reasons)
 * [OPTIONAL - in case you don't use basepath] (string) ctpath: path to the directory in which CT study is located
-* [OPTIONAL - in case you don't use basepath](string) nmpath: path to the directory in which the activity map image (in DICOM format) is located
+* [OPTIONAL - in case you don't use basepath] (string) nmpath: path to the directory in which the activity map image (in DICOM format) is located
 
 ### References:
 [1]: Lanconelli N, Pacilio M, Meo S Lo, Botta F, Dia A Di, Aroche L A T, Pérez M A C and Cremonesi M 2012 A free database of radionuclide voxel S values for the dosimetry of nonuniform activity distributions Phys. Med. Biol. 57 517–33
