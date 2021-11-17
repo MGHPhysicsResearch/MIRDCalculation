@@ -10,13 +10,18 @@ from os import listdir, path
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+import pkg_resources
+
+DATA_PATH = pkg_resources.resource_filename('MIRD', 'VoxelSValues/')
 
 class SValuesData:
-    def __init__(self, radionuclide = '', datapath = './VoxelSValues', dataTOPASpath = '../TOPASSvalues'):
+    def __init__(self, radionuclide = '', datapath = '', dataTOPASpath = '../TOPASSvalues'):
         self.datapath = datapath
         self.datafiles = []
-        if path.isdir(datapath):
-            self.datafiles = listdir(datapath)
+        if datapath == '':
+            self.datapath = DATA_PATH
+        if path.isdir(self.datapath):
+            self.datafiles = listdir(self.datapath)
         self.TOPASpath = dataTOPASpath
         self.TOPASfiles = []
         if path.isdir(dataTOPASpath):
@@ -269,8 +274,8 @@ def RunTests():
     lss = [':', '--', '-']
     for i, vs in enumerate(vsizes):
         y90.plot1D(vs, 'Soft', 'Lanconelli', '', colors[i][0], '.', lss[0])
-        y90.plot1D(vs, 'Soft', 'TOPAS', 'standard', colors[i][1], '*', lss[1])
-        y90.plot1D(vs, 'Soft', 'TOPAS', 'option4', colors[i][2], 'd', lss[2])
+        #y90.plot1D(vs, 'Soft', 'TOPAS', 'standard', colors[i][1], '*', lss[1])
+        #y90.plot1D(vs, 'Soft', 'TOPAS', 'option4', colors[i][2], 'd', lss[2])
     plt.legend()
     plt.grid()
 

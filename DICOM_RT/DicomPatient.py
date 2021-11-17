@@ -6,12 +6,14 @@ Created on Thu May 27 16:09:19 2021
 @author: alejandrobertolet
 """
 
+from os import listdir
+
+import numpy as np
 import pydicom
+from rt_utils import RTStructBuilder
+
 import matplotlib.pylab as plt
 from datetime import datetime
-from os import listdir
-import numpy as np
-from rt_utils import RTStructBuilder
 
 class DicomPatient:
     def __init__(self, dicomDirectory):
