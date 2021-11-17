@@ -6,13 +6,28 @@ Created on Fri May 28 11:45:58 2021
 @author: alejandrobertolet
 """
 
-import DicomPatient as dcmpat
+from DICOM_RT import DicomPatient as dcmpat
 import Svalues
 import numpy as np
 
 # Units
 mCi = 37 #1mCi = 37 MBq
 Gy = 1e3 #1 Gy = 1000 mGy
+
+def GetMIRDDoseInDICOM(basepath, nameDicom, radionuclide, tissue = 'Soft', norm = True, unit = 'Gy/mCi', accum = True, countThreshold = 0, ct_path = '', nm_path = ''):
+    if ct_path == '':
+        ctpath = basepath + 'CT'
+    else:
+        ctpath = ct_path
+    if nm_path == '':
+        nmpath = basepath + 'NM'
+        nmpath = nm_path
+    outputPath = basepath + nameDicom
+    calc = MIRDCalculator(ctpath, nmpath, radionuclide)
+    calc.CalculateOnActivityMapGrid(countThreshold, tissue, norm, accum)
+    calc.DoseInterpolationToCTGrid()
+    calc.WriteRTDoseCT(outputPath, unit)
+    print("Output correctly generated at " + outputPath)
 
 class MIRDCalculator:
     def __init__(self, CTpath, NMpath, radionuclide):
