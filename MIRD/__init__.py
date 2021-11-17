@@ -6,5 +6,5 @@ Created on Wed Nov 17 15:26:20 2021
 @author: alejandrobertolet
 """
 
-from MIRDCalculator import *
-from SValues import *
+from DICOM_RT import *
+from MIRD import *

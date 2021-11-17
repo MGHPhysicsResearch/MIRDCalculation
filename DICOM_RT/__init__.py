@@ -6,5 +6,4 @@ Created on Wed Nov 17 15:27:24 2021
 @author: alejandrobertolet
 """
 
-from DicomPatient import *
-from EvaluationManager import *
+from DICOM_RT import *

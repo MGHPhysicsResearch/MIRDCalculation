@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import io
 import os
 import sys
 from shutil import rmtree
 
-from setuptools import find_packages, setup, Command
-from anaconda_navigator.api.conda_api import FileNotFoundError
+from distutils.core import setup
+from setuptools import find_packages, Command
 
 # Package meta-data
 NAME = 'MIRDCalculation'
@@ -19,18 +19,18 @@ REQUIRES_PYTHON = '>=3.6.0'
 VERSION = '1.1.0'
 
 # Required packages for this module to be executed
-REQUIRED = ['numpy', 'pydicom', 'rt_utils', 'datetime', 'csv']
+REQUIRED = ['numpy', 'pydicom', 'rt_utils']
 
 # Optional packages
 EXTRAS = { 'plots':['matplotlib'] }
 
-here = os.path.abspath(os.path(dirname(__file__)))
+here = os.path.abspath(os.path.dirname(__file__))
 
 # Import the README and use it as the long-description
 try:
     with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
         long_description = '\n' + f.read()
-except FileNotFoundError:
+except:
     long_description = DESCRIPTION
     
 # Load the package's __version__.py module as a dictionary
@@ -86,12 +86,17 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
-    packages=find_packages(exclude["tests", "*.tests", "*.tests.*", "tests.*"]),
+    packages=['DICOM_RT', 'MIRD'],
+    package_dir={'DICOM_RT': 'DICOM_RT', 'MIRD': 'MIRD'},
+    package_data={'MIRD': ['VoxelSValues/*.txt']},
     install_requires=REQUIRED,
     extras_require=EXTRAS,
-    include_package_data=True,
+    #include_package_data=True,
     license='MIT',
     classifiers=[
+        'License :: MIT',
+        'Operating System :: MacOS',
+        'Operating System :: Microsoft :: Windows',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',

@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import csv
 
 class SValuesData:
-    def __init__(self, radionuclide = '', datapath = 'VoxelSValues', dataTOPASpath = '../TOPASSvalues'):
+    def __init__(self, radionuclide = '', datapath = './VoxelSValues', dataTOPASpath = '../TOPASSvalues'):
         self.datapath = datapath
         self.datafiles = []
         if path.isdir(datapath):
