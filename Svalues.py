@@ -6,7 +6,7 @@ Created on Fri May 28 11:51:20 2021
 @author: alejandrobertolet
 """
 
-from os import listdir
+from os import listdir, path
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
@@ -16,7 +16,9 @@ class SValuesData:
         self.datapath = datapath
         self.datafiles = listdir(datapath)
         self.TOPASpath = dataTOPASpath
-        self.TOPASfiles = listdir(dataTOPASpath)
+        self.TOPASfiles = []
+        if path.isdir(dataTOPASpath):
+            self.TOPASfiles = listdir(dataTOPASpath)
         self.isthereradionuclide = False
         self.isthereTOPASdata = False
         if radionuclide != '':
@@ -133,7 +135,7 @@ class SValuesData:
         plt.xlabel('Distance (mm)')
         plt.ylabel('S value (mGy/(MBq s))')
         plt.xlim([-max(x)*0.05, max(x)*1.05])
-        #plt.yscale('log')
+        plt.yscale('log')
     
     def __reverseRadionuclideName(self, name):
         number = ''
