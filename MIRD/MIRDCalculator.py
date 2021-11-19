@@ -26,6 +26,7 @@ def GetMIRDDoseInDICOM(basepath, nameDicom, radionuclide, tissue = 'Soft', norm 
         nmpath = nm_path
     outputPath = basepath + nameDicom
     calc = MIRDCalculator(ctpath, nmpath, radionuclide)
+    calc.ExcludeExtraCorporealActivityThreshold()
     calc.CalculateOnActivityMapGrid(countThreshold, tissue, norm, accum)
     calc.DoseInterpolationToCTGrid()
     calc.WriteRTDoseCT(outputPath, unit)
@@ -214,7 +215,24 @@ class MIRDCalculator:
             unit = unit + ' s';
         self.doseAMGrid = self.doseAMGrid / fn
         self.patCT.WriteRTDose(self.doseAMGrid, name, unit)
-                    
+        
+    def ExcludeExtraCorporealActivityThreshold(self, threshold = -900):
+        countIn = 0
+        shActMap = self.patActMap.img3D.shape
+        shCT = self.patCT.img3D.shape
+        for iax in range(0, shActMap[0]):
+            for iay in range(0, shActMap[1]):
+                for iaz in range(0, shActMap[2]):
+                   position = self.patActMap.GetVoxelDICOMPosition(iax, iay, iaz)
+                   indexes = self.patCT.GetLowerIndexesForDicomPosition(position)
+                   icx = int(indexes[0])
+                   icy = int(indexes[1])
+                   icz = int(indexes[2])
+                   if icx >= 0 and icx < shCT[0] and icy >= 0 and icy < shCT[1] and icz >=0 and icz < shCT[2]:
+                       if self.patCT.img3D[icx, icy, icz] >= threshold:
+                           countIn = countIn + self.patActMap.img3D[iax, iay, iaz]
+        self.patActMap.totalCounts = countIn    
+                
     def __distance(self, pos1, pos2):
         pos1 = np.array(pos1)
         pos2 = np.array(pos2)
