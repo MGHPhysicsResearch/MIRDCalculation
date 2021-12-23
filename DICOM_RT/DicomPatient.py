@@ -144,6 +144,11 @@ class DicomPatient:
                 for k in range(0, grid.shape[2]):
                     newGrid[i,j,k] = int(grid[i,j,k] / outputScaleFactor)
         return [newGrid, outputScaleFactor]
+    
+    def convertFloat64(self, grid, slope):
+        newGrid = np.zeros(grid.shape, dtype='float64')
+        newGrid = grid * slope
+        return newGrid
         
     def LoadStructures(self, RTStructPath, ROIsList=None):
         '''
@@ -177,7 +182,8 @@ class DicomPatient:
         dose_arr = ds.pixel_array*doseScale
         dose_arr = np.swapaxes(dose_arr, 0,2)
         dose_arr = np.swapaxes(dose_arr, 0,1)
-        self.doseArray = dose_arr
+        slope = ds.DoseGridScaling
+        self.doseArray = self.convertFloat64(dose_arr, slope)
         print('Dose array loaded.')
         
 class PatientCT(DicomPatient):
