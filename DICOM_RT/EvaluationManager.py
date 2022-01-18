@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Nov  2 10:33:18 2021
-Last modified on Tue Jan 18 8:42 2022
+Last modified on Tue Jan 18 14:47 2022
 
 @author: Mislav Bobić and Alejandro Bertolet
 """
@@ -10,6 +10,7 @@ Last modified on Tue Jan 18 8:42 2022
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import csv
 from scipy.interpolate import interp1d
 
 class EvaluationManager:
@@ -113,6 +114,21 @@ class EvaluationManager:
     def LoadCSV(self, CSVPath):
         self.DVHDataFrame = pd.read_csv(CSVPath)
         
+    def SaveVoxelByVoxelCSV(self, CSVPath):
+        f = open(CSVPath, 'w')
+        writer = csv.writer(f)
+        for ROIName in self.ROINames:
+            writer.writerow([ROIName])
+            headers = ['VoxelID', 'Dose (' + self.doseUnit + ')']
+            for q in self.extraQoIs:
+                headers.append(q.Name + " (" + q.unit + " )")
+            writer.writerow(headers)
+            for vid in self.structureArrays[ROIName]:
+                row = [vid, self.doseArray[vid]]
+                for q in self.extraQoIs:
+                    row.append(q.array[vid])
+                writer.writerow(row)
+                
 class QoIDistribution:
     def __init__(self, array, quantity, unit):
         self.array = array
