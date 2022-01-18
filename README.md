@@ -1,4 +1,4 @@
-# MIRDCalculator v1.1.0
+# MIRDCalculator v1.2.0
 Python application to calculate internal dosimetry following MIRD formulation
 
 This python-based application calculates doses in Nuclear Medicine applications.
@@ -34,3 +34,6 @@ The parameters of this method are:
 
 ### References:
 [1]: Lanconelli N, Pacilio M, Meo S Lo, Botta F, Dia A Di, Aroche L A T, Pérez M A C and Cremonesi M 2012 A free database of radionuclide voxel S values for the dosimetry of nonuniform activity distributions Phys. Med. Biol. 57 517–33
+
+## For developers:
+Compile and build changes using the .sh script. Make changes according to your directories
