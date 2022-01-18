@@ -11,14 +11,15 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import csv
+import DICOM_RT.DicomPatient
 from scipy.interpolate import interp1d
 
 class EvaluationManager:
-    def __init__(self, structureArrays, qoiArrays):
-        self.structureArrays = structureArrays
-        self.ROINames = [i for i in structureArrays]
+    def __init__(self, dicomPat):
+        self.structureArrays = dicomPat.structures3D
+        self.ROINames = [i for i in self.structureArrays]
         self.extraQoIs = []
-        for q in qoiArrays:
+        for q in dicomPat.quantitiesOfInterest:
             if q.quantity == 'Dose':
                 self.doseArray = q.array
                 self.doseUnit = q.unit
@@ -120,17 +121,22 @@ class EvaluationManager:
         for ROIName in self.ROINames:
             writer.writerow([ROIName])
             headers = ['VoxelID', 'Dose (' + self.doseUnit + ')']
+            qrois = []
             for q in self.extraQoIs:
-                headers.append(q.Name + " (" + q.unit + " )")
+                headers.append(q.quantity + " (" + q.unit + " )")
+                qrois.append(q.array[self.structureArrays[ROIName]])
             writer.writerow(headers)
-            for vid in self.structureArrays[ROIName]:
-                row = [vid, self.doseArray[vid]]
-                for q in self.extraQoIs:
-                    row.append(q.array[vid])
+            dose = self.doseArray[self.structureArrays[ROIName]]
+            indexes = np.where(self.structureArrays[ROIName])
+            shape = self.structureArrays[ROIName].shape
+            inds = []
+            for i, ind in enumerate(indexes[0]):
+                inds.append(indexes[0][i]*shape[1]*shape[2]+indexes[1][i]*shape[2] + indexes[2][i])
+            for i, ind in enumerate(inds):
+                row = []
+                row.append(ind)
+                row.append(dose[i])
+                for qroi in qrois:
+                    row.append(qroi[i])
                 writer.writerow(row)
-                
-class QoIDistribution:
-    def __init__(self, array, quantity, unit):
-        self.array = array
-        self.quantity = quantity
-        self.unit = unit
+        f.close()

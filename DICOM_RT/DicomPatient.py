@@ -20,6 +20,7 @@ class DicomPatient:
         self.dicomDirectory = dicomDirectory
         filesInDir = listdir(dicomDirectory)
         self.dcmFiles = []
+        self.quantitiesOfInterest = []
         for fname in filesInDir:
             self.dcmFiles.append(pydicom.dcmread(dicomDirectory + '/' + fname))
         
@@ -170,7 +171,7 @@ class DicomPatient:
         self.structures3D = dict(zip(self.ROINames, structures3DList))
         print('Structures loaded.')
         
-    def LoadRTDose(self, RTDosePath, doseScale=1):
+    def LoadRTDose(self, RTDosePath, quantity = 'Dose', unit = None, doseScale=1):
         '''
         Loads dose from DICOM RTDose file as 3D array.
         
@@ -183,7 +184,17 @@ class DicomPatient:
         dose_arr = np.swapaxes(dose_arr, 0,2)
         dose_arr = np.swapaxes(dose_arr, 0,1)
         slope = ds.DoseGridScaling
-        self.doseArray = self.convertFloat64(dose_arr, slope)
+        qoi = QoIDistribution()
+        qoi.array = self.convertFloat64(dose_arr, slope)
+        qoi.quantity = quantity
+        if unit is not None:
+            qoi.unit = unit
+        else:
+            try:
+                qoi.unit = ds.DoseUnits
+            except:
+                qoi.unit = 'arb. unit'
+        self.quantitiesOfInterest.append(qoi)
         print('Dose array loaded.')
         
 class PatientCT(DicomPatient):
@@ -240,5 +251,11 @@ class Patient3DActivity(DicomPatient):
         for i in range(0, self.dcmFiles[0].pixel_array.shape[0]):
             img2D = self.dcmFiles[0].pixel_array[i,:,:]
             self.img3D[:,:,i] = img2D
-        
+   
+class QoIDistribution:
+    def __init__(self, array = None, quantity = None, unit = None):
+        self.array = array
+        self.quantity = quantity
+        self.unit = unit
+
         
