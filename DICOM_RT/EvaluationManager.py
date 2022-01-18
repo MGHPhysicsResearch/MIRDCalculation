@@ -29,6 +29,10 @@ class EvaluationManager:
     def CalculateDVHs(self, numBins=1000):
         self.DVHDataFrame = pd.DataFrame()
         self.maxDose = np.max(self.doseArray)
+        if len(self.extraQoIs) > 0:
+            self.QoiDVHDataFrames = []
+            for q in self.extraQoIs:
+                self.QoiDVHDataFrames.append(pd.DataFrame())
         for ROIName in self.ROINames:
             structureDose = self.GetStructureDose(ROIName)
             histRange = (0, round(self.maxDose))
@@ -45,8 +49,25 @@ class EvaluationManager:
             cumulativeDVH = cumulativeDVH[::-1]/cumulativeVoxels
             self.DVHDataFrame[ROIName] = cumulativeDVH
             if len(self.extraQoIs) > 0:
-                pass
+                for iq, q in enumerate(self.extraQoIs):
+                    structQ = q.array[self.structureArrays[ROIName]]
+                    histR = (0, round(np.max(q.array)))
+                    histB = round(np.max(q.array)) if numBins is None else numBins-1
+                    diffDVH, qValues = np.histogram(structQ, histB, histR)
+                    cumDVH = np.zeros(len(diffDVH)+1)
+                    ind = 0
+                    cumVoxls = 0
+                    for j in diffDVH[::-1]:
+                        np.put(cumDVH, ind, cumVoxls)
+                        cumVoxls += i
+                        ind += 1
+                    np.put(cumDVH, ind, cumVoxls)
+                    cumDVH = cumDVH[::-1]/cumVoxls
+                    self.QoiDVHDataFrames[iq][ROIName] = cumDVH
         self.DVHDataFrame.insert(0, 'Dose', doseValues)
+        if len(self.extraQoIs) > 0:
+            for i, q in enumerate(self.extraQoIs):
+                self.QoiDVHDataFrames[i].insert(0, q.quantity, qValues)
         print('DVHs calculated.')
 
     def GetStructureDose(self, ROIName):
