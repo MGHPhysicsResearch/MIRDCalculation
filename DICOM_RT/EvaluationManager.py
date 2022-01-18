@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Nov  2 10:33:18 2021
+Last modified on Tue Jan 18 8:42 2022
 
-@author: Mislav
+@author: Mislav Bobić and Alejandro Bertolet
 """
 
 import numpy as np
@@ -12,13 +13,18 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 class EvaluationManager:
-    def __init__(self, structureArrays, doseArray, unit=''):
+    def __init__(self, structureArrays, qoiArrays):
         self.structureArrays = structureArrays
         self.ROINames = [i for i in structureArrays]
-        self.doseArray = doseArray
-        self.maxDose =  np.max(doseArray)
+        self.extraQoIs = []
+        for q in qoiArrays:
+            if q.quantity == 'Dose':
+                self.doseArray = q.array
+                self.doseUnit = q.unit
+            else:
+                self.extraQoIs.append(q)
+        self.maxDose =  np.max(self.doseArray)
         self.CalculateDVHs()
-        self.unit = unit
         
     def CalculateDVHs(self, numBins=1000):
         self.DVHDataFrame = pd.DataFrame()
@@ -38,6 +44,8 @@ class EvaluationManager:
             np.put(cumulativeDVH, index, cumulativeVoxels)
             cumulativeDVH = cumulativeDVH[::-1]/cumulativeVoxels
             self.DVHDataFrame[ROIName] = cumulativeDVH
+            if len(self.extraQoIs) > 0:
+                pass
         self.DVHDataFrame.insert(0, 'Dose', doseValues)
         print('DVHs calculated.')
 
@@ -72,7 +80,7 @@ class EvaluationManager:
         for ROIName in self.ROINames:
             yAxis = self.DVHDataFrame[ROIName]*100
             ax.plot(xAxis, yAxis, label=ROIName, linewidth=1.5)
-            plt.xlabel('Dose [{}]'.format(self.unit))
+            plt.xlabel('Dose [{}]'.format(self.doseUnit))
             plt.ylabel('Volume [%]')
             plt.legend()
             plt.grid(alpha=0.7, ls='--')
@@ -83,3 +91,9 @@ class EvaluationManager:
         
     def LoadCSV(self, CSVPath):
         self.DVHDataFrame = pd.read_csv(CSVPath)
+        
+class QoIDistribution:
+    def __init__(self, array, quantity, unit):
+        self.array = array
+        self.quantity = quantity
+        self.unit = unit
