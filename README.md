@@ -1,4 +1,4 @@
-# MIRDCalculator v1.1.0
+# MIRDCalculator v1.2.0
 Python application to calculate internal dosimetry following MIRD formulation
 
 This python-based application calculates doses in Nuclear Medicine applications.
@@ -8,10 +8,10 @@ Dose is calculated using the voxel sizes in the activity map and then it is inte
 The interpolation method uses the inverse of the distance between each node in the CT grid and the 8 closest nodes in the SPECT/PET grid to weight each contribution.
 
 ## Use (distributed version):
-Download the MIRDCalculator-1.1.0.tar.gz 
+Download the MIRDCalculator-1.2.0.tar.gz 
 Install using pip via:
   
-  `pip install MIRDCalculator-1.1.0.tar.gz`
+  `pip install MIRDCalculator-1.2.0.tar.gz`
 
 You can import two modules: MIRD and DICOM_RT (for dealing with DICOM features)
 To calculate MIRD dose and store it in DICOM RTDOSE format you need:
@@ -34,3 +34,6 @@ The parameters of this method are:
 
 ### References:
 [1]: Lanconelli N, Pacilio M, Meo S Lo, Botta F, Dia A Di, Aroche L A T, Pérez M A C and Cremonesi M 2012 A free database of radionuclide voxel S values for the dosimetry of nonuniform activity distributions Phys. Med. Biol. 57 517–33
+
+## For developers:
+Compile and build changes using the .sh script. Make changes according to your directories
