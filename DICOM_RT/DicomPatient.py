@@ -170,7 +170,7 @@ class DicomPatient:
         self.structures3D = dict(zip(self.ROINames, structures3DList))
         print('Structures loaded.')
         
-    def LoadDoseArray(self, RTDosePath, doseScale=1):
+    def LoadRTDose(self, RTDosePath, doseScale=1):
         '''
         Loads dose from DICOM RTDose file as 3D array.
         
