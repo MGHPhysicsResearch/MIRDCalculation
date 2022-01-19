@@ -195,7 +195,7 @@ class DicomPatient:
         qoi = QoIDistribution()
         dx = ds.PixelSpacing[0]
         dy = ds.PixelSpacing[1]
-        dz = ds.GridFrameOffsetVector[1] - ds.GridFrameOffsetVector[0]
+        dz = np.abs(ds.GridFrameOffsetVector[1] - ds.GridFrameOffsetVector[0])
         initPos = ds.ImagePositionPatient
         if darr.shape == self.img3D.shape:
             qoi.array = darr
@@ -322,11 +322,12 @@ class PatientCT(DicomPatient):
         for f in self.dcmFiles:
             if hasattr(f, 'SliceLocation'):
                 self.slices.append(f)
-        self.slices = sorted(self.slices, key=lambda s: s.SliceLocation, reverse=False)
+        self.slices = sorted(self.slices, key=lambda s: s.ImagePositionPatient[2], reverse=False)
     
     def GetFrameOfReference(self):
         self.forUID = self.slices[0].FrameOfReferenceUID
         self.firstVoxelPosDICOMCoordinates = self.slices[0].ImagePositionPatient
+        print("Origin CT", self.firstVoxelPosDICOMCoordinates)
         
     def ReadPixelValues(self):
         imgShape = list(self.slices[0].pixel_array.shape)
