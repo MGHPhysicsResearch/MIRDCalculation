@@ -22,7 +22,8 @@ class DicomPatient:
         self.dcmFiles = []
         self.quantitiesOfInterest = []
         for fname in filesInDir:
-            self.dcmFiles.append(pydicom.dcmread(dicomDirectory + '/' + fname))
+            if fname[-3:] == 'dcm':
+                self.dcmFiles.append(pydicom.dcmread(dicomDirectory + '/' + fname))
         
     def FilterByModality(self, modality):
         modfiles = []
@@ -166,8 +167,14 @@ class DicomPatient:
         else:
             self.ROINames = ROIsList
         structures3DList = []
+        excludeROIS = []
         for s in self.ROINames:
-            structures3DList.append(rtstruct.get_roi_mask_by_name(s))
+            try:
+                structures3DList.append(rtstruct.get_roi_mask_by_name(s))
+            except:
+                excludeROIS.append(s)
+                print("Structure " + s + " could not be read.")
+        self.ROINames = list(set(self.ROINames) - set(excludeROIS))
         self.structures3D = dict(zip(self.ROINames, structures3DList))
         print('Structures loaded.')
         
@@ -184,8 +191,16 @@ class DicomPatient:
         dose_arr = np.swapaxes(dose_arr, 0,2)
         dose_arr = np.swapaxes(dose_arr, 0,1)
         slope = ds.DoseGridScaling
+        darr = self.convertFloat64(dose_arr, slope)
         qoi = QoIDistribution()
-        qoi.array = self.convertFloat64(dose_arr, slope)
+        dx = ds.PixelSpacing[0]
+        dy = ds.PixelSpacing[1]
+        dz = ds.GridFrameOffsetVector[1] - ds.GridFrameOffsetVector[0]
+        initPos = ds.ImagePositionPatient
+        if darr.shape == self.img3D.shape:
+            qoi.array = darr
+        else:
+            qoi.array = self.DoseInterpolationToCTGrid(darr, dx, dy, dz, initPos)
         qoi.quantity = quantity
         if unit is not None:
             qoi.unit = unit
@@ -195,7 +210,101 @@ class DicomPatient:
             except:
                 qoi.unit = 'arb. unit'
         self.quantitiesOfInterest.append(qoi)
-        print('Dose array loaded.')
+        print(quantity + ' array loaded.')
+    
+    def DoseInterpolationToCTGrid(self, dosegrid, dx, dy, dz, iniPos, threshold = None):
+        shape = self.img3D.shape
+        doseCTgrid = np.zeros(shape)
+        if threshold == None:
+            threshold = 0.01 * np.max(dosegrid)
+        minx = int((iniPos[0] - self.firstVoxelPosDICOMCoordinates[0])/(self.pixelSpacing[0]+1e-6))-1
+        miny = int((iniPos[1] - self.firstVoxelPosDICOMCoordinates[1])/(self.pixelSpacing[1]+1e-6))-1
+        minz = int((iniPos[2] - self.firstVoxelPosDICOMCoordinates[2])/(self.sliceThickness+1e-6))-1
+        maxposxCT = self.firstVoxelPosDICOMCoordinates[0] + self.pixelSpacing[0] * shape[0]
+        maxposyCT = self.firstVoxelPosDICOMCoordinates[1] + self.pixelSpacing[1] * shape[1]
+        maxposzCT = self.firstVoxelPosDICOMCoordinates[2] + self.sliceThickness * shape[2]
+        maxposxgrid = iniPos[0] + dx * dosegrid.shape[0]
+        maxposygrid = iniPos[1] + dy * dosegrid.shape[1]
+        maxposzgrid = iniPos[2] + dz * dosegrid.shape[2]
+        maxx = shape[0] - int((maxposxCT - maxposxgrid)/(self.pixelSpacing[0]+1e-6))
+        maxy = shape[1] - int((maxposyCT - maxposygrid)/(self.pixelSpacing[1]+1e-6))
+        maxz = shape[2] - int((maxposzCT - maxposzgrid)/(self.sliceThickness+1e-6))
+        for icx in range(minx, maxx):
+            porc = (icx-minx)/(maxx-minx)*100
+            print("Interpolating grid... (" + str(round(porc,1))+"%)")
+            for icy in range(miny, maxy):
+                for icz in range(minz, maxz):
+                    position = self.GetVoxelDICOMPosition(icx, icy, icz)
+                    iax = int((position[0]-iniPos[0])/(dx+1e-6))
+                    iay = int((position[1]-iniPos[1])/(dy+1e-6))
+                    iaz = int((position[2]-iniPos[2])/(dz+1e-6))
+                    # 8 closest vertices. Weight inversely proportional to the distance to each vertex
+                    cumWeight = 0
+                    try:
+                        if dosegrid[iax, iay, iaz] > threshold:
+                            x = iniPos[0] + iax * dx
+                            y = iniPos[1] + iay * dy
+                            z = iniPos[2] + iaz * dz
+                            pos000 = np.array([x,y,z])
+                            d000 = self.__distance(position, pos000)
+                            if d000 == 0:
+                                doseCTgrid[icx, icy, icz] = dosegrid[iax, iay, iaz]
+                                break
+                            else:
+                                doseCTgrid[icx,icy,icz] = doseCTgrid[icx,icy,icz] + dosegrid[iax, iay, iaz] / d000
+                                cumWeight = cumWeight + 1/d000
+                            if iaz + 1 < dosegrid.shape[2]:
+                                pos001 = pos000
+                                pos001[2] = pos000[2] + dz
+                                d001 = self.__distance(position, pos001)
+                                doseCTgrid[icx,icy,icz] = doseCTgrid[icx,icy,icz] + dosegrid[iax, iay, iaz+1] / d001
+                                cumWeight = cumWeight + 1/d001
+                            if iay + 1 < dosegrid.shape[1]:
+                                pos010 = pos000
+                                pos010[1] = pos000[1] + dy
+                                d010 = self.__distance(position, pos010)
+                                doseCTgrid[icx,icy,icz] = doseCTgrid[icx,icy,icz] + dosegrid[iax, iay+1, iaz] / d010
+                                cumWeight = cumWeight + 1/d010
+                            if iay + 1 < dosegrid.shape[1] and iaz + 1 < dosegrid.shape[2]:
+                                pos011 = pos001
+                                pos011[1] = pos000[1] + dy
+                                d011 = self.__distance(position, pos011)
+                                doseCTgrid[icx,icy,icz] = doseCTgrid[icx,icy,icz] + dosegrid[iax, iay+1, iaz+1] / d011
+                                cumWeight = cumWeight + 1/d011
+                            if iax + 1 < dosegrid.shape[0]:
+                                pos100 = pos000
+                                pos100[0] = pos000[0] + dx
+                                d100 = self.__distance(position, pos100)
+                                doseCTgrid[icx,icy,icz] = doseCTgrid[icx,icy,icz] + dosegrid[iax+1, iay, iaz] / d100
+                                cumWeight = cumWeight + 1/d100
+                            if iax + 1 < dosegrid.shape[0] and iaz + 1 < dosegrid.shape[2]:
+                                pos101 = pos001
+                                pos101[0] = pos000[0] + dx
+                                d101 = self.__distance(position, pos101)
+                                doseCTgrid[icx,icy,icz] = doseCTgrid[icx,icy,icz] + dosegrid[iax+1, iay, iaz+1] / d101
+                                cumWeight = cumWeight + 1/d101
+                            if iax + 1 < dosegrid.shape[0] and iay + 1 < dosegrid.shape[1]:
+                                pos110 = pos010
+                                pos110[0] = pos000[0] + dx
+                                d110 = self.__distance(position, pos110)
+                                doseCTgrid[icx,icy,icz] = doseCTgrid[icx,icy,icz] + dosegrid[iax+1, iay+1, iaz] / d110
+                                cumWeight = cumWeight + 1/d110
+                            if iax + 1 < dosegrid.shape[0] and iay + 1 < dosegrid.shape[1] and iaz + 1 < dosegrid.shape[2]:
+                                pos111 = pos011
+                                pos111[0] = pos000[0] + dx
+                                d111 = self.__distance(position, pos111)
+                                doseCTgrid[icx,icy,icz] = doseCTgrid[icx,icy,icz] + dosegrid[iax+1, iay+1, iaz+1] / d111
+                                cumWeight = cumWeight + 1/d111
+                            doseCTgrid[icx,icy,icz] = doseCTgrid[icx,icy,icz] / cumWeight
+                    except:
+                        print("Error at: ", iax, iay, iaz)
+                        pass
+        return doseCTgrid
+                
+    def __distance(self, pos1, pos2):
+        pos1 = np.array(pos1)
+        pos2 = np.array(pos2)
+        return np.sqrt(np.sum(np.power(pos1-pos2, 2)))
         
 class PatientCT(DicomPatient):
     def __init__(self, dicomDirectory):
@@ -213,7 +322,7 @@ class PatientCT(DicomPatient):
         for f in self.dcmFiles:
             if hasattr(f, 'SliceLocation'):
                 self.slices.append(f)
-        self.slices = sorted(self.slices, key=lambda s: s.SliceLocation, reverse=True)
+        self.slices = sorted(self.slices, key=lambda s: s.SliceLocation, reverse=False)
     
     def GetFrameOfReference(self):
         self.forUID = self.slices[0].FrameOfReferenceUID
@@ -251,6 +360,8 @@ class Patient3DActivity(DicomPatient):
         for i in range(0, self.dcmFiles[0].pixel_array.shape[0]):
             img2D = self.dcmFiles[0].pixel_array[i,:,:]
             self.img3D[:,:,i] = img2D
+            
+    
    
 class QoIDistribution:
     def __init__(self, array = None, quantity = None, unit = None):
