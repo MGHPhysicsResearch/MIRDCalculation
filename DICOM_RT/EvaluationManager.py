@@ -16,6 +16,7 @@ from scipy.interpolate import interp1d
 
 class EvaluationManager:
     def __init__(self, dicomPat):
+        self.patient = dicomPat
         self.structureArrays = dicomPat.structures3D
         self.ROINames = [i for i in self.structureArrays]
         self.extraQoIs = []
@@ -36,6 +37,17 @@ class EvaluationManager:
             for q in self.extraQoIs:
                 self.QoiDVHDataFrames.append(pd.DataFrame())
         for ROIName in self.ROINames:
+            if ROIName == 'CTV':
+                shape = self.structureArrays[ROIName]
+                print("ROI Shape", shape)
+                for ix in range(0, shape[0]):
+                    for iy in range(0, shape[1]):
+                        for iz in range(0, shape[2]):
+                            if self.structureArrays[ROIName][ix,iy,iz]:
+                                pos = self.patient.GetVoxelDICOMPosition(ix, iy, iz)
+                                print("Indexes", ix, iy, iz)
+                                print("CTV Position", pos)
+                                print("Dose", self.doseArray[ix, iy, iz])
             structureDose = self.GetStructureDose(ROIName)
             histRange = (0, round(self.maxDose))
             histBins  = round(self.maxDose) if numBins is None else numBins-1

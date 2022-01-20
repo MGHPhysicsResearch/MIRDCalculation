@@ -72,7 +72,28 @@ class DicomPatient:
         p.imshow(self.img3D[:,:,sliceNumber], extent=[minx,maxx,miny,maxy], cmap=colormap)
         p.set_aspect(self.axAspect)
         
-    def WriteRTDose(self, doseGrid, name, unit):
+    def WriteRTDose(self, doseGrid = None, name = None, unit = None):
+        if doseGrid == None:
+            try:
+                for q in self.quantitiesOfInterest:
+                    if q.quantity == 'Dose':
+                        doseGrid = q.array
+                        name = 'RTDose_' + datetime.now().strftime("%m%d%y_%H%M%S") + '.dcm'
+                        unit = q.unit
+            except:
+                print("No dose grid was found.")
+                return
+        if isinstance(doseGrid, str):
+            try:
+                for q in self.quantitiesOfInterest:
+                    if q.quantity == doseGrid:
+                        doseGrid = q.array
+                        if name == None:
+                            name = 'RTDose_' + doseGrid + '_' + datetime.now().strftime("%m%d%y_%H%M%S") + '.dcm'
+                        unit = q.unit
+            except:
+                print("No " + doseGrid + " grid was found.")
+                return
         try:
             base = self.slices[0].copy()
         except:
@@ -85,8 +106,8 @@ class DicomPatient:
         base.SOPInstanceUID = pydicom.uid.generate_uid(specificRootUID)
         base.SeriesInstanceUID = pydicom.uid.generate_uid(specificRootUID)
         base.Manufacturer = 'MIRDCalculator'
-        base.ManufacturerModelName = 'MIRDCalculator v1.0 by abertoletreina@mgh.harvard.edu'
-        base.SeriesDescription = 'Dose-MIRDCalculator'
+        base.ManufacturerModelName = 'RT_DICOM v1.2 by abertoletreina@mgh.harvard.edu'
+        base.SeriesDescription = 'Dose-RT_DICOM v1.2'
         # Date and time
         now = datetime.now()
         base.StudyDate = now.strftime("%Y%M%d")
@@ -174,8 +195,12 @@ class DicomPatient:
             except:
                 excludeROIS.append(s)
                 print("Structure " + s + " could not be read.")
+        # for i, s in enumerate(structures3DList):
+        #     structures3DList[i] = np.swapaxes(s, 0, 2)
+        #     structures3DList[i] = np.swapaxes(s, 0, 1)
         self.ROINames = list(set(self.ROINames) - set(excludeROIS))
         self.structures3D = dict(zip(self.ROINames, structures3DList))
+        print('CTV shape', self.structures3D['CTV'].shape)
         print('Structures loaded.')
         
     def LoadRTDose(self, RTDosePath, quantity = 'Dose', unit = None, doseScale=1):
@@ -316,6 +341,7 @@ class PatientCT(DicomPatient):
         self.ReadPixelValues()
         self.Rescale()
         self.GetFrameOfReference()
+        print('CT shape', self.img3D.shape)
         
     def GetSlices(self):
         self.slices = []
@@ -327,7 +353,6 @@ class PatientCT(DicomPatient):
     def GetFrameOfReference(self):
         self.forUID = self.slices[0].FrameOfReferenceUID
         self.firstVoxelPosDICOMCoordinates = self.slices[0].ImagePositionPatient
-        print("Origin CT", self.firstVoxelPosDICOMCoordinates)
         
     def ReadPixelValues(self):
         imgShape = list(self.slices[0].pixel_array.shape)
