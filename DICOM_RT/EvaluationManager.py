@@ -62,7 +62,7 @@ class EvaluationManager:
                     cumVoxls = 0
                     for j in diffDVH[::-1]:
                         np.put(cumDVH, ind, cumVoxls)
-                        cumVoxls += i
+                        cumVoxls += j
                         ind += 1
                     np.put(cumDVH, ind, cumVoxls)
                     cumDVH = cumDVH[::-1]/cumVoxls
@@ -111,13 +111,13 @@ class EvaluationManager:
                     xAxis = q[quantity]
                     DVHDataFrame = q
                     unit = self.extraQoIs[i].unit
-            if xAxis == None:
+            if xAxis is None:
                 print("Quantity " + quantity + " could not be found.")
                 return
         for ROIName in self.ROINames:
             yAxis = DVHDataFrame[ROIName]*100
             ax.plot(xAxis, yAxis, label=ROIName, linewidth=1.5)
-            plt.xlabel('Dose [{}]'.format(unit))
+            plt.xlabel((quantity + '[{}]').format(unit))
             plt.ylabel('Volume [%]')
             plt.legend()
             plt.grid(alpha=0.7, ls='--')
