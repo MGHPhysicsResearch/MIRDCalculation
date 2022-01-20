@@ -37,17 +37,6 @@ class EvaluationManager:
             for q in self.extraQoIs:
                 self.QoiDVHDataFrames.append(pd.DataFrame())
         for ROIName in self.ROINames:
-            if ROIName == 'CTV':
-                shape = self.structureArrays[ROIName]
-                print("ROI Shape", shape)
-                for ix in range(0, shape[0]):
-                    for iy in range(0, shape[1]):
-                        for iz in range(0, shape[2]):
-                            if self.structureArrays[ROIName][ix,iy,iz]:
-                                pos = self.patient.GetVoxelDICOMPosition(ix, iy, iz)
-                                print("Indexes", ix, iy, iz)
-                                print("CTV Position", pos)
-                                print("Dose", self.doseArray[ix, iy, iz])
             structureDose = self.GetStructureDose(ROIName)
             histRange = (0, round(self.maxDose))
             histBins  = round(self.maxDose) if numBins is None else numBins-1
@@ -108,14 +97,27 @@ class EvaluationManager:
         f = interp1d(DVHVolume, DVHDose)
         return float(f(volume))
     
-    def PlotDVHs(self):
-        fig = plt.figure(figsize=(6,4), dpi=300)
+    def PlotDVHs(self, quantity = "Dose"):
+        fig = plt.figure(figsize=(18,12), dpi=300)
         ax = fig.add_subplot(1,1,1)
-        xAxis = self.DVHDataFrame['Dose']
+        xAxis = None
+        if quantity == "Dose":
+            xAxis = self.DVHDataFrame['Dose']
+            DVHDataFrame = self.DVHDataFrame
+            unit = self.doseUnit
+        else:
+            for i, q in enumerate(self.QoiDVHDataFrames):
+                if self.extraQoIs[i].quantity == quantity:
+                    xAxis = q[quantity]
+                    DVHDataFrame = q
+                    unit = self.extraQoIs[i].unit
+            if xAxis == None:
+                print("Quantity " + quantity + " could not be found.")
+                return
         for ROIName in self.ROINames:
-            yAxis = self.DVHDataFrame[ROIName]*100
+            yAxis = DVHDataFrame[ROIName]*100
             ax.plot(xAxis, yAxis, label=ROIName, linewidth=1.5)
-            plt.xlabel('Dose [{}]'.format(self.doseUnit))
+            plt.xlabel('Dose [{}]'.format(unit))
             plt.ylabel('Volume [%]')
             plt.legend()
             plt.grid(alpha=0.7, ls='--')

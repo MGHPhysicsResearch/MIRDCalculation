@@ -41,8 +41,8 @@ class DicomPatient:
         self.corAspect = self.sliceThickness / self.pixelSpacing[0]
         
     def GetVoxelDICOMPosition(self, ix, iy, iz):
-        xpos = self.firstVoxelPosDICOMCoordinates[0] + ix * self.pixelSpacing[0]
-        ypos = self.firstVoxelPosDICOMCoordinates[1] + iy * self.pixelSpacing[1]
+        xpos = self.firstVoxelPosDICOMCoordinates[0] + ix * self.pixelSpacing[1]
+        ypos = self.firstVoxelPosDICOMCoordinates[1] + iy * self.pixelSpacing[0]
         zpos = self.firstVoxelPosDICOMCoordinates[2] + iz * self.sliceThickness
         return np.array([xpos, ypos, zpos])
     
@@ -50,8 +50,8 @@ class DicomPatient:
         xini = self.firstVoxelPosDICOMCoordinates[0]
         yini = self.firstVoxelPosDICOMCoordinates[1]
         zini = self.firstVoxelPosDICOMCoordinates[2]
-        dx = self.pixelSpacing[0]
-        dy = self.pixelSpacing[1]
+        dx = self.pixelSpacing[1]
+        dy = self.pixelSpacing[0]
         dz = self.sliceThickness
         ix = np.floor((position[0]-xini)/(dx+1e-6))
         iy = np.floor((position[1]-yini)/(dy+1e-6))
@@ -87,9 +87,9 @@ class DicomPatient:
             try:
                 for q in self.quantitiesOfInterest:
                     if q.quantity == doseGrid:
-                        doseGrid = q.array
                         if name == None:
                             name = 'RTDose_' + doseGrid + '_' + datetime.now().strftime("%m%d%y_%H%M%S") + '.dcm'
+                        doseGrid = q.array
                         unit = q.unit
             except:
                 print("No " + doseGrid + " grid was found.")
@@ -120,8 +120,11 @@ class DicomPatient:
         base.ContentTime = now.strftime("%H%M%S")
         # Reshape dose grid
         doseGrid = self.reshapeZAxis(doseGrid)
-        base.LargestImagePixelValue = int(np.max(doseGrid))
+        base.PixelRepresentation = 0
+        base.LargestImagePixelValue = int(np.ceil(np.max(doseGrid)))
+        base['LargestImagePixelValue'].VR = 'US'
         base.SmallestImagePixelValue = int(np.min(doseGrid))
+        base['SmallestImagePixelValue'].VR = 'US'
         base.BitsAllocated = 16
         base.BitsStored = 16
         base.HighBit = 15
@@ -184,23 +187,18 @@ class DicomPatient:
         '''
         rtstruct = RTStructBuilder.create_from(self.dicomDirectory, RTStructPath)
         if ROIsList is None:
-            self.ROINames = rtstruct.get_roi_names()
+            ROINames = rtstruct.get_roi_names()
         else:
-            self.ROINames = ROIsList
+            ROINames = ROIsList
         structures3DList = []
-        excludeROIS = []
-        for s in self.ROINames:
+        self.ROINames = []
+        for s in ROINames:
             try:
                 structures3DList.append(rtstruct.get_roi_mask_by_name(s))
+                self.ROINames.append(s)
             except:
-                excludeROIS.append(s)
                 print("Structure " + s + " could not be read.")
-        # for i, s in enumerate(structures3DList):
-        #     structures3DList[i] = np.swapaxes(s, 0, 2)
-        #     structures3DList[i] = np.swapaxes(s, 0, 1)
-        self.ROINames = list(set(self.ROINames) - set(excludeROIS))
         self.structures3D = dict(zip(self.ROINames, structures3DList))
-        print('CTV shape', self.structures3D['CTV'].shape)
         print('Structures loaded.')
         
     def LoadRTDose(self, RTDosePath, quantity = 'Dose', unit = None, doseScale=1):
@@ -212,16 +210,18 @@ class DicomPatient:
             doseScale --> scale to apply to dose distribution (int / float)
         '''
         ds = pydicom.read_file(RTDosePath)
-        dose_arr = ds.pixel_array*doseScale
+        dose_arr = ds.pixel_array
         dose_arr = np.swapaxes(dose_arr, 0,2)
         dose_arr = np.swapaxes(dose_arr, 0,1)
         slope = ds.DoseGridScaling
         darr = self.convertFloat64(dose_arr, slope)
         qoi = QoIDistribution()
-        dx = ds.PixelSpacing[0]
-        dy = ds.PixelSpacing[1]
+        dx = ds.PixelSpacing[1]
+        dy = ds.PixelSpacing[0]
         dz = np.abs(ds.GridFrameOffsetVector[1] - ds.GridFrameOffsetVector[0])
-        initPos = ds.ImagePositionPatient
+        initPos = np.array(ds.ImagePositionPatient).copy()
+        initPos[0] = ds.ImagePositionPatient[1]
+        initPos[1] = ds.ImagePositionPatient[0]
         if darr.shape == self.img3D.shape:
             qoi.array = darr
         else:
@@ -242,17 +242,17 @@ class DicomPatient:
         doseCTgrid = np.zeros(shape)
         if threshold == None:
             threshold = 0.01 * np.max(dosegrid)
-        minx = int((iniPos[0] - self.firstVoxelPosDICOMCoordinates[0])/(self.pixelSpacing[0]+1e-6))-1
-        miny = int((iniPos[1] - self.firstVoxelPosDICOMCoordinates[1])/(self.pixelSpacing[1]+1e-6))-1
+        minx = int((iniPos[0] - self.firstVoxelPosDICOMCoordinates[0])/(self.pixelSpacing[1]+1e-6))-1
+        miny = int((iniPos[1] - self.firstVoxelPosDICOMCoordinates[1])/(self.pixelSpacing[0]+1e-6))-1
         minz = int((iniPos[2] - self.firstVoxelPosDICOMCoordinates[2])/(self.sliceThickness+1e-6))-1
-        maxposxCT = self.firstVoxelPosDICOMCoordinates[0] + self.pixelSpacing[0] * shape[0]
-        maxposyCT = self.firstVoxelPosDICOMCoordinates[1] + self.pixelSpacing[1] * shape[1]
+        maxposxCT = self.firstVoxelPosDICOMCoordinates[0] + self.pixelSpacing[1] * shape[0]
+        maxposyCT = self.firstVoxelPosDICOMCoordinates[1] + self.pixelSpacing[0] * shape[1]
         maxposzCT = self.firstVoxelPosDICOMCoordinates[2] + self.sliceThickness * shape[2]
         maxposxgrid = iniPos[0] + dx * dosegrid.shape[0]
         maxposygrid = iniPos[1] + dy * dosegrid.shape[1]
         maxposzgrid = iniPos[2] + dz * dosegrid.shape[2]
-        maxx = shape[0] - int((maxposxCT - maxposxgrid)/(self.pixelSpacing[0]+1e-6))
-        maxy = shape[1] - int((maxposyCT - maxposygrid)/(self.pixelSpacing[1]+1e-6))
+        maxx = shape[0] - int((maxposxCT - maxposxgrid)/(self.pixelSpacing[1]+1e-6))
+        maxy = shape[1] - int((maxposyCT - maxposygrid)/(self.pixelSpacing[0]+1e-6))
         maxz = shape[2] - int((maxposzCT - maxposzgrid)/(self.sliceThickness+1e-6))
         for icx in range(minx, maxx):
             porc = (icx-minx)/(maxx-minx)*100
@@ -341,12 +341,11 @@ class PatientCT(DicomPatient):
         self.ReadPixelValues()
         self.Rescale()
         self.GetFrameOfReference()
-        print('CT shape', self.img3D.shape)
         
     def GetSlices(self):
         self.slices = []
         for f in self.dcmFiles:
-            if hasattr(f, 'SliceLocation'):
+            if hasattr(f, 'ImagePositionPatient'):
                 self.slices.append(f)
         self.slices = sorted(self.slices, key=lambda s: s.ImagePositionPatient[2], reverse=False)
     
