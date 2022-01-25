@@ -45,8 +45,9 @@ class EvaluationManager:
             index = 0
             cumulativeVoxels = 0
             for i in differentialDVH[::-1]:
+                cumulativeVoxels += i/2
                 np.put(cumulativeDVH, index, cumulativeVoxels)
-                cumulativeVoxels += i
+                cumulativeVoxels += i/2
                 index += 1
             np.put(cumulativeDVH, index, cumulativeVoxels)
             cumulativeDVH = cumulativeDVH[::-1]/cumulativeVoxels
@@ -61,8 +62,9 @@ class EvaluationManager:
                     ind = 0
                     cumVoxls = 0
                     for j in diffDVH[::-1]:
+                        cumVoxls += j/2
                         np.put(cumDVH, ind, cumVoxls)
-                        cumVoxls += j
+                        cumVoxls += j/2
                         ind += 1
                     np.put(cumDVH, ind, cumVoxls)
                     cumDVH = cumDVH[::-1]/cumVoxls
