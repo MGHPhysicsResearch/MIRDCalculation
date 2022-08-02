@@ -27,7 +27,9 @@ X = [0, 2]
 
 # Main script
 calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site)
-calc.CalculateEQDXs(X)
+calc.CalculateEQDXs(X, 0.01)
 calc.WriteDICOMRTEQDXs()
-#calc.EUBED(RoiList, createFile)
-#calc.EUD(RoiList, createFile)
+
+# Evaluate results and calculate EUBED
+calc.ShowDVHs()
+calc.EUEQDX(X)
