@@ -30,10 +30,11 @@ class SValuesData:
         self.isthereTOPASdata = False
         if radionuclide != '':
             self.SetRadionuclide(radionuclide)
-        
+
     def SetRadionuclide(self, radionuclide):
-        if not radionuclide[0].isnumeric():
-            radionuclide = self.__reverseRadionuclideName(radionuclide)
+        rn = Radionuclide(radionuclide)
+        self.halflife = rn.halfLife
+        self.decayConstant = rn.decayConstant
         self.datasets = []
         self.maximumDistanceInVoxels = 6
         for filename in self.datafiles:
@@ -49,7 +50,7 @@ class SValuesData:
         if len(self.datasets) > 0:
             self.datasets.sort(key=lambda x:x.voxelSize)
             self.isthereradionuclide = True
-        
+
         self.TOPASdatasets = []
         for filename in self.TOPASfiles:
             cumActMBqs = 10
@@ -67,25 +68,6 @@ class SValuesData:
         if len(self.TOPASdatasets) > 0:
             self.isthereTOPASdata = True
             self.TOPASdatasets.sort(key = lambda x:x.voxelSize)
-        
-        # Units for half life
-        hour = 3600
-        day = 24*hour
-        if radionuclide == '89Sr':
-            self.halflife = 50.5*day
-        elif radionuclide == '90Y':
-            self.halflife = 64.2*hour
-        elif radionuclide == '131I':
-            self.halflife = 8.02*day
-        elif radionuclide == '153Sm':
-            self.halflife = 46.3*hour
-        elif radionuclide == '177Lu':
-            self.halflife = 6.647*day
-        elif radionuclide == '186Re':
-            self.halflife = 3.8*day
-        elif radionuclide == '188Re':
-            self.halflife = 16.98*hour
-        self.decayConstant = np.log(2) / self.halflife
 
     def GetSValue(self, voxelSize, voxelsX, voxelsY, voxelsZ, tissue = 'Soft', source = 'Lanconelli', physics = 'standard'):
         if source == 'Lanconelli':
@@ -114,7 +96,7 @@ class SValuesData:
             self.voxelSizes = np.array(voxelsizes)
             self.Svalues = np.array(svalues)
         return np.interp(voxelSize, self.voxelSizes, self.Svalues)
-    
+
     def GetStdSValue(self, voxelSize, voxelsX, voxelsY, voxelsZ, tissue = 'Soft', physics = 'standard'):
         if not self.isthereTOPASdata:
             print("No data was found for TOPAS simulations.")
@@ -122,7 +104,7 @@ class SValuesData:
         for ds in self.TOPASdatasets:
             if ds.tissue == tissue and round(ds.voxelSize, 3) == round(voxelSize, 3) and ds.physics == physics:
                 return ds.StdSvalues[voxelsX, voxelsY, voxelsZ]
-    
+
     def plot1D(self, voxelSize, tissue = 'Soft', source = 'Lanconelli', physics = 'standard', color = 'black',
                mk = '*', linestyle = '-'):
         x = []
@@ -131,28 +113,18 @@ class SValuesData:
             x.append(i * voxelSize)
             S.append(self.GetSValue(voxelSize, 0, 0, i, tissue, source, physics))
         if source == 'Lanconelli':
-            plt.errorbar(x, S, marker=mk, label="Voxel size = " + str(voxelSize) + " mm - Lanconelli et al.", 
+            plt.errorbar(x, S, marker=mk, label="Voxel size = " + str(voxelSize) + " mm - Lanconelli et al.",
                         c=color, ls=linestyle)
         if source == 'TOPAS':
             errorS = []
             for i in range(0, 6):
                 errorS.append(self.GetStdSValue(voxelSize, i, 0, 0, tissue, physics))
-            plt.errorbar(x, S, errorS, fmt=mk, c=color, markersize=5, 
+            plt.errorbar(x, S, errorS, fmt=mk, c=color, markersize=5,
                          label="Voxel size = " + str(voxelSize) + " mm - TOPAS-" + physics, ls=linestyle)
         plt.xlabel('Distance (mm)')
         plt.ylabel('S value (mGy/(MBq s))')
         plt.xlim([-max(x)*0.05, max(x)*1.05])
         plt.yscale('log')
-    
-    def __reverseRadionuclideName(self, name):
-        number = ''
-        alpha = ''
-        for i in range(0, len(name)):
-            if name[i].isnumeric():
-                number = number + name[i]
-            if name[i].isalpha():
-                alpha = alpha + name[i]
-        return number + alpha
     
 class SValueDataset:
     def __init__(self, filename):
@@ -264,7 +236,48 @@ class SValueDatasetTOPAS:
             self.Svalues = self.Dvalues / cumAct * 1000
             errorDValues = self.StdDvalues * (cumAct * 1e6) / np.sqrt(cumAct * 1e6)
             self.StdSvalues = errorDValues / cumAct * 1000
-        
+
+class Radionuclide:
+    def __init__(self, name):
+        if not name[0].isnumeric():
+            self.name = self.__reverseRadionuclideName(name)
+        else:
+            self.name = name
+
+    @property
+    def halfLife(self):
+        # Units for half life
+        hour = 3600
+        day = 24*hour
+        if self.name == '89Sr':
+            self._halflife = 50.5*day
+        elif self.name == '90Y':
+            self._halflife = 64.2*hour
+        elif self.name == '131I':
+            self._halflife = 8.02*day
+        elif self.name == '153Sm':
+            self._halflife = 46.3*hour
+        elif self.name == '177Lu':
+            self._halflife = 6.647*day
+        elif self.name == '186Re':
+            self._halflife = 3.8*day
+        elif self.name == '188Re':
+            self._halflife = 16.98*hour
+        return self._halflife
+
+    @property
+    def decayConstant(self):
+        return np.log(2) / self.halflife
+
+    def __reverseRadionuclideName(self, name):
+        number = ''
+        alpha = ''
+        for i in range(0, len(name)):
+            if name[i].isnumeric():
+                number = number + name[i]
+            if name[i].isalpha():
+                alpha = alpha + name[i]
+        return number + alpha
 
 def RunTests():
     y90 = SValuesData('Y90')
