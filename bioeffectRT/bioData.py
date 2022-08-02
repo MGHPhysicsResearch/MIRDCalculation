@@ -22,6 +22,15 @@ class BioeffectData:
     def __loadData(self):
         self.abData = pd.read_csv(self.datapath + "/alphabeta.csv")
         self.trepData = pd.read_csv(self.datapath + "/trep.csv")
+        self.alphaData = pd.read_csv(self.datapath + "/alpha.csv")
+
+    def getAlphaValue(self, type, site):
+        stdSite = self.__checkOtherNamesForSite(site)
+        dataOfType = self.alphaData[self.alphaData.type == type]
+        if len(dataOfType[dataOfType.site == stdSite]) == 0:
+            stdSite = 'generic'
+        v = dataOfType[dataOfType.site == stdSite].value.squeeze()
+        return v
 
     def getAlphaBetaValue(self, type, site):
         stdSite = self.__checkOtherNamesForSite(site)

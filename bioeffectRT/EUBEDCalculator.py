@@ -52,41 +52,56 @@ class EUBEDCalculator:
                 self.tumors.append(struct)
         print("Tumor structures identified: ", self.tumors)
         self._convertDoseUnits()
-        self.BEDimg3D = np.zeros(self.ctPatient.img3D.shape)
+        self.EQDXs = []
+        self.Xs = []
 
-    def CalculateBED(self, doseThreshold=0.01):
+    def CalculateEQDXs(self, X=[0], doseThreshold=0.01):
         doseArray = self.ctPatient.quantitiesOfInterest[0].array
         threshold = doseThreshold * np.max(doseArray)
-        for i in range(doseArray.shape[0]):
-            if (i % 20) == 0:
-                prog = i/doseArray.shape[0] * 100
-                print("Calculating BED... (" + str(round(prog, 1)) + "%)")
-            for j in range(doseArray.shape[1]):
-                for k in range(doseArray.shape[2]):
-                    dose = doseArray[i, j, k]
-                    if dose >= threshold:
-                        trep = self.bioeffectData.getTRepValue('n', 'generic')
-                        alphabeta = self.bioeffectData.getAlphaBetaValue('n', 'generic')
-                        voxelBelongsToTumor = False
-                        for t in self.tumors:
-                            if self.ctPatient.structures3D[t][i, j, k]:
-                                voxelBelongsToTumor = True
-                                trep = self.bioeffectData.getTRepValue('t', self.site)
-                                alphabeta = self.bioeffectData.getAlphaBetaValue('t', self.site)
-                                break
-                        if not voxelBelongsToTumor:
-                            for s in self.ROIs:
-                                if self.ctPatient.structures3D[s][i, j, k]:
-                                    trep = self.bioeffectData.getTRepValue('n', s)
-                                    alphabeta = self.bioeffectData.getAlphaBetaValue('n', s)
-                        self.BEDimg3D[i, j, k] = self._BED(dose, trep, alphabeta, self.rnHalfLife)
+        self.Xs = X
+        for x in X:
+            self.EQDXs.append(np.zeros(self.ctPatient.quantitiesOfInterest[0].array.shape))
+            for i in range(doseArray.shape[0]):
+                if (i % 20) == 0:
+                    prog = i/doseArray.shape[0] * 100
+                    print("Calculating EQDXs... (" + str(round(prog, 1)) + "%)")
+                for j in range(doseArray.shape[1]):
+                    for k in range(doseArray.shape[2]):
+                        dose = doseArray[i, j, k]
+                        if dose >= threshold:
+                            trep = self.bioeffectData.getTRepValue('n', 'generic')
+                            alphabeta = self.bioeffectData.getAlphaBetaValue('n', 'generic')
+                            voxelBelongsToTumor = False
+                            for it, t in enumerate(self.tumors):
+                                if self.ctPatient.structures3D[t][i, j, k]:
+                                    voxelBelongsToTumor = True
+                                    trep = self.bioeffectData.getTRepValue('t', self.site)
+                                    alphabeta = self.bioeffectData.getAlphaBetaValue('t', self.site)
+                                    break
+                            if not voxelBelongsToTumor:
+                                for s in self.ROIs:
+                                    if self.ctPatient.structures3D[s][i, j, k]:
+                                        trep = self.bioeffectData.getTRepValue('n', s)
+                                        alphabeta = self.bioeffectData.getAlphaBetaValue('n', s)
+                            self.EQDXs[-1][i, j, k] = self._EQDX(x, dose, trep, alphabeta, self.rnHalfLife)
+
+    def _EQDX(self, X, d, Trep, ab, tau):
+        return d * (ab + Trep/(Trep+tau) * d) / (ab + X)
 
     def _BED(self, d, Trep, ab, tau):
-        return d * (1 + d * Trep / (ab * (Trep + tau)))
+        return self._EQDX(0, d, Trep, ab, tau)
 
-    def WriteDICOMRTBED(self):
-        name = 'BED_' + self.doseFileName + '.dcm'
-        self.ctPatient.WriteRTDose(self.BEDimg3D, self.basePath+name, self.unit)
+    def _EUBED(self, d, alpha):
+        pass
+
+    def WriteDICOMRTEQDXs(self):
+        for i, x in enumerate(self.Xs):
+            if x == 0:
+                description = 'BED_'
+            else:
+                description = 'EQD_' + str(x)
+            name = description + self.doseFileName + '.dcm'
+            self.ctPatient.WriteRTDose(self.EQDXs[i], self.basePath+name, self.unit, description)
 
     def _convertDoseUnits(self):
         cumulatedActivityPermCi = 12337446 # MBq s

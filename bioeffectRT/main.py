@@ -22,9 +22,12 @@ unit = 'Gy/GBq'
 # 4. Tumor location to indicate parameters to use
 site = "Lung"
 
+# 5. Select EQDXs to calculate (X=0 -> BED). Calculate also EQD_2Gy by default
+X = [0, 2]
+
 # Main script
 calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site)
-calc.CalculateBED()
-calc.WriteDICOMRTBED()
+calc.CalculateEQDXs(X)
+calc.WriteDICOMRTEQDXs()
 #calc.EUBED(RoiList, createFile)
 #calc.EUD(RoiList, createFile)
