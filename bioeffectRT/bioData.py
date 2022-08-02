@@ -25,16 +25,18 @@ class BioeffectData:
 
     def getAlphaBetaValue(self, type, site):
         stdSite = self.__checkOtherNamesForSite(site)
-        if len(self.abData[self.abData.type == type][self.abData.site == stdSite]) == 0:
+        dataOfType = self.abData[self.abData.type == type]
+        if len(dataOfType[dataOfType.site == stdSite]) == 0:
             stdSite = 'generic'
-        v = self.abData[self.abData.type == type][self.abData.site == stdSite].value.squeeze()
+        v = dataOfType[dataOfType.site == stdSite].value.squeeze()
         return v
 
     def getTRepValue(self, type, site):
         stdSite = self.__checkOtherNamesForSite(site)
-        if len(self.trepData[self.trepData.type == type][self.trepData.site == stdSite]) == 0:
+        dataOfType = self.trepData[self.trepData.type == type]
+        if len(dataOfType[dataOfType.site == stdSite]) == 0:
             stdSite = 'generic'
-        v = self.trepData[self.trepData.type == type][self.trepData.site == stdSite].value.squeeze()
+        v = dataOfType[dataOfType.site == stdSite].value.squeeze() * 3600 # From h to s
         return v
 
     def __checkOtherNamesForSite(self, site):

@@ -73,7 +73,7 @@ class DicomPatient:
         p.set_aspect(self.axAspect)
         
     def WriteRTDose(self, doseGrid = None, name = None, unit = None):
-        if doseGrid == None:
+        if doseGrid is None:
             try:
                 for q in self.quantitiesOfInterest:
                     if q.quantity == 'Dose':

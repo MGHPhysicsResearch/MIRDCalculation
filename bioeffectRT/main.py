@@ -14,24 +14,17 @@ basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/
 # 2. RTDOSE filename
 doseFile = 'DoseOnCTGrid.dcm'
 
-# 3. Units for BED RTDose file
-unit = "Gy/10MBq"
+# 3. Radionuclide used and (optional) number of histories if RTDose file was obtained from MC/TOPAS,  and desired unit for output
+radionuclide = 'Y90'
+nHistories = 1e7
+unit = 'Gy/GBq'
 
 # 4. Tumor location to indicate parameters to use
 site = "Lung"
 
-# 5. ROIs for EUBED calculation
-ROIList = ['Tumor', 'Liver', 'Lung_L', 'Lung_R']
-
-# 6. Print EUBED and EUD into txt file
-createFile = True
-
-# 7. Scale input dose to a max value (float)
-maxVoxel = 50
-
 # Main script
-calc = EUBEDCalculator(basePath, doseFile, unit, site, maxVoxel)
+calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site)
 calc.CalculateBED()
-#calc.WriteRTDosebED()
+calc.WriteDICOMRTBED()
 #calc.EUBED(RoiList, createFile)
 #calc.EUD(RoiList, createFile)
