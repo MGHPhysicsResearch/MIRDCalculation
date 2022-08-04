@@ -1,4 +1,4 @@
-# MIRDCalculator v2.0
+# MIRDCalculator v2.0.0
 Python application to calculate internal dosimetry following MIRD formulation
 
 This python-based application calculates doses in Nuclear Medicine applications.
@@ -13,10 +13,10 @@ The interpolation method uses the inverse of the distance between each node in t
 - Boolean operations with structures to visualize on DVH
 
 ## Use (distributed version):
-Download the MIRDCalculator-2.0.tar.gz 
+Download the MIRDCalculator-2.0.0.tar.gz 
 Install using pip via:
   
-  `pip install MIRDCalculator-2.0.tar.gz`
+  `pip install MIRDCalculator-2.0.0.tar.gz`
 
 You can import two modules: MIRD and DICOM_RT (for dealing with DICOM features)
 To calculate MIRD dose and store it in DICOM RTDOSE format you need:
