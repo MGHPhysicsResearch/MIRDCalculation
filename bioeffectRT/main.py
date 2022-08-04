@@ -27,6 +27,8 @@ X = [0, 2]
 
 # Main script
 calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site)
+# Option to get new structure such as lung - tumor (requires knowledge of the structure names for each patient)
+calc.ctPatient.addNewBooleanStructure('subtraction', 'LEFT LUNG', 'RIGHT TUMOR')
 calc.CalculateEQDXs(X, 0.01)
 calc.WriteDICOMRTEQDXs()
 

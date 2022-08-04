@@ -15,6 +15,8 @@ from rt_utils import RTStructBuilder
 import matplotlib.pylab as plt
 from datetime import datetime
 
+from DICOM_RT.StructureManager import Operations
+
 class DicomPatient:
     def __init__(self, dicomDirectory):
         self.dicomDirectory = dicomDirectory
@@ -203,7 +205,27 @@ class DicomPatient:
                 print("Structure " + s + " could not be read.")
         self.structures3D = dict(zip(self.ROINames, structures3DList))
         print('Structures loaded.')
-        
+
+    def addNewBooleanStructure(self, operation, ROI1, ROI2):
+        if type(ROI2) is list:
+            struct2 = self.structures3D[ROI2[0]]
+            for i in range(1, len(ROI2)):
+                struct2 = Operations.Union(struct2, self.structures3D[ROI2[i]])
+            name2 = 'tumors'
+        else:
+            struct2 = self.structures3D[ROI2]
+            name2 = ROI2
+        if operation.lower() == 'subtraction':
+            res = Operations.Subtraction(self.structures3D[ROI1], struct2)
+            name = ROI1 + '-' + name2
+        elif operation.lower() == 'union' or operation.lower() == 'addition':
+            res = Operations.Union(self.structures3D[ROI1], struct2)
+            name = ROI1 + '+' + name2
+        elif operation.lower() == 'intersection':
+            res = Operations.Intersection(self.structures3D[ROI1], struct2)
+            name = ROI1 + '-int-' + name2
+        self.structures3D[name] = res
+
     def LoadRTDose(self, RTDosePath, quantity = 'Dose', unit = None, doseScale=1):
         '''
         Loads dose from DICOM RTDose file as 3D array.
@@ -388,8 +410,6 @@ class Patient3DActivity(DicomPatient):
         for i in range(0, self.dcmFiles[0].pixel_array.shape[0]):
             img2D = self.dcmFiles[0].pixel_array[i,:,:]
             self.img3D[:,:,i] = img2D
-            
-    
    
 class QoIDistribution:
     def __init__(self, array = None, quantity = None, unit = None):

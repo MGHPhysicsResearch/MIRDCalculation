@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import csv
-import DICOM_RT.DicomPatient
 from scipy.interpolate import interp1d
 
 class EvaluationManager:
@@ -118,6 +117,8 @@ class EvaluationManager:
                 if q.quantity == quantity:
                     DVHDose = self.QoiDVHDataFrames[i][quantity]
                     DVHVolume = self.QoiDVHDataFrames[i][ROIName]
+        if np.max(DVHDose) == 0:
+            return 0
         f = interp1d(DVHDose, DVHVolume)
         return float(f(dose))
 
@@ -130,12 +131,17 @@ class EvaluationManager:
                 if q.quantity == quantity:
                     DVHDose = self.QoiDVHDataFrames[i][quantity]
                     DVHVolume = self.QoiDVHDataFrames[i][ROIName]
+        if np.max(DVHDose) == 0:
+            return 0
         f = interp1d(DVHVolume, DVHDose)
         return float(f(volume))
     
     def PlotDVHs(self, quantity = "Dose", path=None):
         fig = plt.figure(dpi=300)
         ax = fig.add_subplot(1,1,1)
+        colormap = plt.cm.nipy_spectral
+        colors = [colormap(i) for i in np.linspace(1, 0, len(self.ROINames))]
+        ax.set_prop_cycle('color', colors)
         xAxis = None
         if quantity == "Dose":
             xAxis = self.DVHDataFrame['Dose']
@@ -150,11 +156,20 @@ class EvaluationManager:
             if xAxis is None:
                 print("Quantity " + quantity + " could not be found.")
                 return
+        cutDose = 0
         for ROIName in self.ROINames:
             yAxis = DVHDataFrame[ROIName]*100
-            ax.plot(xAxis, yAxis, label=ROIName, linewidth=1.5)
+            ax.plot(xAxis, yAxis, label=ROIName, linewidth=1.25)
+            if 'tumor' in ROIName.lower():
+                cutDoseForROI = self.EvaluateD(0.005, ROIName, quantity)
+                if cutDoseForROI > cutDose:
+                    cutDose = cutDoseForROI
+        if cutDose == 0:
+            cutDose = np.max(xAxis)
         ax.set_xlabel((quantity + '[{}]').format(unit))
         ax.set_ylabel('Volume [%]')
+        ax.set_xlim([0, cutDose])
+        ax.set_ylim([-0.1, 100.1])
         plt.legend()
         plt.grid(alpha=0.7, ls='--')
         if path is not None:

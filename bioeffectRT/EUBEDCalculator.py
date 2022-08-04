@@ -58,7 +58,7 @@ class EUBEDCalculator:
         self.EQDXs = []
         self.Xs = []
 
-    def CalculateEQDXs(self, X=[0], doseThreshold=0.01):
+    def CalculateEQDXs(self, X=[0], doseThreshold=0.001):
         doseArray = self.ctPatient.quantitiesOfInterest[0].array
         threshold = doseThreshold * np.max(doseArray)
         self.Xs = X
@@ -113,6 +113,8 @@ class EUBEDCalculator:
             print(self.basePath+name, " file saved.")
 
     def ShowDVHs(self, path=None):
+        self.eval.PlotDVHs('Dose', self.basePath)
+        self.eval.printMainResults('Dose', self.basePath)
         for x in self.Xs:
             if x == 0:
                 quantity = 'BED'
