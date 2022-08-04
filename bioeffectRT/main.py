@@ -9,7 +9,7 @@ from EUBEDCalculator import *
 
 ### USER PARAMETERS ###
 # 1. Path to DICOM files
-basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient4/'
+basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient3/'
 
 # 2. RTDOSE filename
 doseFile = 'DoseOnCTGrid.dcm'

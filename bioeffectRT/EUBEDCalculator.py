@@ -33,13 +33,15 @@ class EUBEDCalculator:
         self.ctPatient = dcmpat.PatientCT(ctPath)
         self.ctPatient.LoadRTDose(dosePath)
         try:
-            structFile = os.listdir(basepath + "/RTSTRUCT/")
+            structFiles = os.listdir(basepath + "/RTSTRUCT/")
+            structFile = [f for f in structFiles if 'dcm' in f]
             structPath = basepath + "/RTSTRUCT/" + structFile[0]
             self.ctPatient.LoadStructures(structPath)
         except Exception as e1:
             print("ERROR: RTSTRUCT folder was not found. Exception: ", e1)
             try:
-                structFile = os.listdir(basepath + "/RTSTRUCT_LUNGSANDLIVER/")
+                structFiles = os.listdir(basepath + "/RTSTRUCT_LUNGSANDLIVER/")
+                structFile = [f for f in structFiles if 'dcm' in f]
                 structPath = basepath + "/RTSTRUCT_LUNGSANDLIVER/" + structFile[0]
                 self.ctPatient.LoadStructures(structPath)
                 print("RTSTRUCT_LUNGSANDLIVER loaded instead.")
@@ -49,7 +51,7 @@ class EUBEDCalculator:
         print("ROIs identified: ", self.ROIs)
         self.tumors = []
         for struct in self.ROIs:
-            if 'Tumor' in struct:
+            if 'tumor' in struct.lower():
                 self.tumors.append(struct)
         print("Tumor structures identified: ", self.tumors)
         self._convertDoseUnits()
@@ -127,6 +129,7 @@ class EUBEDCalculator:
         for site in sites:
             if site in self.tumors:
                 alpha = self.bioeffectData.getAlphaValue('t', site)
+                #alpha = -10
             else:
                 alpha = self.bioeffectData.getAlphaValue('n', site)
             res = []
