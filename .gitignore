@@ -3,3 +3,6 @@
 2020-12__Studies/
 2020-09__Studies-JohnDoe/
 __pycache__/
+/venv/
+.project
+.pydevproject
