@@ -117,7 +117,7 @@ class EvaluationManager:
                 if q.quantity == quantity:
                     DVHDose = self.QoiDVHDataFrames[i][quantity]
                     DVHVolume = self.QoiDVHDataFrames[i][ROIName]
-        if np.max(DVHDose) == 0:
+        if DVHVolume[2] < 0.01:
             return 0
         f = interp1d(DVHDose, DVHVolume)
         return float(f(dose))
@@ -131,7 +131,7 @@ class EvaluationManager:
                 if q.quantity == quantity:
                     DVHDose = self.QoiDVHDataFrames[i][quantity]
                     DVHVolume = self.QoiDVHDataFrames[i][ROIName]
-        if np.max(DVHDose) == 0:
+        if DVHVolume[2] < 0.01:
             return 0
         f = interp1d(DVHVolume, DVHDose)
         return float(f(volume))
