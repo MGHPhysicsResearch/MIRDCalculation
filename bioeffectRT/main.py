@@ -9,7 +9,7 @@ from EUBEDCalculator import *
 
 ### USER PARAMETERS ###
 # 1. Path to DICOM files
-basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient3/'
+basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient4/'
 
 # 2. RTDOSE filename
 doseFile = 'DoseOnCTGrid.dcm'
@@ -28,7 +28,7 @@ X = [0, 2]
 # Main script
 calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site)
 # Option to get new structure such as lung - tumor (requires knowledge of the structure names for each patient)
-calc.ctPatient.addNewBooleanStructure('subtraction', 'LEFT LUNG', 'RIGHT TUMOR')
+calc.ctPatient.addNewBooleanStructure('subtraction', 'Left Lung', 'Tumor')
 calc.CalculateEQDXs(X, 0.01)
 calc.WriteDICOMRTEQDXs()
 
