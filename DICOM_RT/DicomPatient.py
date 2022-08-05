@@ -137,8 +137,11 @@ class DicomPatient:
         base.BitsStored = 16
         base.HighBit = 15
         [newGrid, slope] = self.convertInt16(doseGrid)
-        del base.RescaleSlope
-        del base.RescaleIntercept
+        try:
+            del base.RescaleSlope
+            del base.RescaleIntercept
+        except:
+            pass
         base.DoseGridScaling = slope
         base.DoseSummationType = 'PLAN'
         base.DoseUnits = unit
