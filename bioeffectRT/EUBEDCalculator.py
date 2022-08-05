@@ -93,7 +93,7 @@ class EUBEDCalculator:
             else:
                 description = 'EQD_' + str(x)
             name = description + self.doseFileName + '.dcm'
-            self.ctPatient.WriteRTDose(self.EQDXs[i], self.basePath+name, self.unit, description)
+            self.ctPatient.WriteRTDose(self.basePath+name, self.EQDXs[i], self.unit, description)
             print(self.basePath+name, " file saved.")
 
     def ShowDVHs(self, path=None):

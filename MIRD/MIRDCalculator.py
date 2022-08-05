@@ -201,7 +201,7 @@ class MIRDCalculator:
         if not self.accumulate:
             unit = unit + ' s';
         self.doseCTgrid = self.doseCTgrid / fn
-        self.patCT.WriteRTDose(self.doseCTgrid, name, unit)
+        self.patCT.WriteRTDose(name, self.doseCTgrid, unit)
 
     def WriteRTDoseAM(self, name='MIRDDose.dcm', unit = 'mGy/MBq'):
         fn = 1
@@ -214,7 +214,7 @@ class MIRDCalculator:
         if not self.accumulate:
             unit = unit + ' s';
         self.doseAMGrid = self.doseAMGrid / fn
-        self.patCT.WriteRTDose(self.doseAMGrid, name, unit)
+        self.patCT.WriteRTDose(name, self.doseAMGrid, unit)
         
     def ExcludeExtraCorporealActivityThreshold(self, threshold = -900):
         countIn = 0

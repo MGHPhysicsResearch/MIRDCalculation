@@ -13,7 +13,7 @@ basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/
 
 # 2. RTDOSE filename
 doseFile = 'DoseOnCTGrid.dcm'
-bedFile = ''
+bedFile = '/BED_DoseOnCTGrid.dcm'
 
 # 3. Radionuclide used and (optional) number of histories if RTDose file was obtained from MC/TOPAS,  and desired unit for output
 radionuclide = 'Y90'
@@ -29,6 +29,7 @@ X = [0, 2]
 # Main script
 calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site)
 # Option to get new structure such as lung - tumor (requires knowledge of the structure names for each patient)
+calc.ctPatient.LoadRTDose(basePath + bedFile, 'BED')
 calc.ctPatient.addNewBooleanStructure('subtraction', 'Right Lung', 'Tumor')
 calc.CalculateEQDXs(X, 0.01)
 calc.WriteDICOMRTEQDXs()

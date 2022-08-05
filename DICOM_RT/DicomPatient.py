@@ -76,13 +76,14 @@ class DicomPatient:
         p.imshow(self.img3D[:,:,sliceNumber], extent=[minx,maxx,miny,maxy], cmap=colormap)
         p.set_aspect(self.axAspect)
         
-    def WriteRTDose(self, doseGrid = None, name = None, unit = None, seriesDescription = None):
+    def WriteRTDose(self, name = None, doseGrid = None, unit = None, seriesDescription = None):
         if doseGrid is None:
             try:
                 for q in self.quantitiesOfInterest:
                     if q.quantity == 'Dose':
                         doseGrid = q.array
-                        name = 'RTDose_' + datetime.now().strftime("%m%d%y_%H%M%S") + '.dcm'
+                        if name is None:
+                            name = 'RTDose_' + datetime.now().strftime("%m%d%y_%H%M%S") + '.dcm'
                         unit = q.unit
             except:
                 print("No dose grid was found.")
@@ -91,7 +92,7 @@ class DicomPatient:
             try:
                 for q in self.quantitiesOfInterest:
                     if q.quantity == doseGrid:
-                        if name == None:
+                        if name is None:
                             name = 'RTDose_' + doseGrid + '_' + datetime.now().strftime("%m%d%y_%H%M%S") + '.dcm'
                         doseGrid = q.array
                         unit = q.unit
@@ -278,6 +279,7 @@ class DicomPatient:
                     self.quantitiesOfInterest[i].array = cumulatedActivityPermCi / simulatedActivity * q.array
                 if unit == 'mGy/mCi':
                     self.quantitiesOfInterest[i].array = cumulatedActivityPermCi / simulatedActivity / 1000 * q.array
+                print(str(q.quantity) + " units converted from " + unitInRTDose + " to " + unit)
             elif unitInRTDose != unit:
                 if unitInRTDose == 'Gy/GBq' and unit == 'Gy/mCi':
                     self.quantitiesOfInterest[i].array = 1/GBqInmCi * q.array
@@ -291,8 +293,9 @@ class DicomPatient:
                     self.quantitiesOfInterest[i].array = GBqInmCi * 1000 * q.array
                 elif unitInRTDose == "mGy/mCi" and unit == 'Gy/mCi':
                     self.quantitiesOfInterest[i].array = 1000 * q.array
+                print(str(q.quantity) + " units converted from " + unitInRTDose + " to " + unit)
             self.quantitiesOfInterest[i].unit = unit
-            print(str(q.quantity) + " units converted from " + unitInRTDose + " to " + unit)
+
 
     def DoseInterpolationToCTGrid(self, dosegrid, dx, dy, dz, iniPos, threshold = None):
         shape = self.img3D.shape
