@@ -16,10 +16,9 @@ from MIRD.Svalues import Radionuclide
 class EUBEDCalculator:
     def __init__(self, basepath, dosefile, radionuclide, unit="Gy/GBq", nHistories=0, site=None):
         self.bioeffectData = BioeffectData()
-        self.unit = unit
-        self.nHistories = nHistories
         rn = Radionuclide(radionuclide)
         self.rnHalfLife = rn.halfLife
+        self.unit = unit
         if site is None:
             self.site = 'generic'
         else:
@@ -31,7 +30,7 @@ class EUBEDCalculator:
         self.basePath = basepath
         self.doseFileName = doseFileSplit
         self.ctPatient = dcmpat.PatientCT(ctPath)
-        self.ctPatient.LoadRTDose(dosePath)
+        self.ctPatient.LoadRTDose(dosePath, 'Dose', None, unit, nHistories)
         try:
             structFiles = os.listdir(basepath + "/RTSTRUCT/")
             structFile = [f for f in structFiles if 'dcm' in f]
@@ -54,7 +53,6 @@ class EUBEDCalculator:
             if 'tumor' in struct.lower():
                 self.tumors.append(struct)
         print("Tumor structures identified: ", self.tumors)
-        self._convertDoseUnits()
         self.EQDXs = []
         self.Xs = []
 
@@ -137,33 +135,6 @@ class EUBEDCalculator:
                 res.append(-1/alpha*np.log(sum/N))
                 print('EU' + quantity + ' for ' + site + " = " + str(res[-1]) + " " + unit)
         return res
-
-    def _convertDoseUnits(self):
-        cumulatedActivityPermCi = 12337446 # MBq s
-        GBqInmCi = 1/0.037
-        unitInRTDose = self.ctPatient.quantitiesOfInterest[0].unit
-        if self.nHistories > 0 and unitInRTDose == 'arb. unit':
-            simulatedActivity = self.nHistories / 1e6  # MBq
-            if self.unit == 'Gy/GBq':
-                self.ctPatient.quantitiesOfInterest[0].array = cumulatedActivityPermCi/simulatedActivity * GBqInmCi * self.ctPatient.quantitiesOfInterest[0].array
-            if self.unit == 'Gy/mCi':
-                self.ctPatient.quantitiesOfInterest[0].array = cumulatedActivityPermCi / simulatedActivity * self.ctPatient.quantitiesOfInterest[0].array
-            if self.unit == 'mGy/mCi':
-                self.ctPatient.quantitiesOfInterest[0].array = cumulatedActivityPermCi / simulatedActivity / 1000 * self.ctPatient.quantitiesOfInterest[0].array
-        elif unitInRTDose != self.unit:
-            if unitInRTDose == 'Gy/GBq' and self.unit == 'Gy/mCi':
-                self.ctPatient.quantitiesOfInterest[0].array = 1/GBqInmCi * self.ctPatient.quantitiesOfInterest[0].array
-            elif unitInRTDose == "Gy/GBq" and self.unit == "mGy/mCi":
-                self.ctPatient.quantitiesOfInterest[0].array = 1/GBqInmCi / 1000 * self.ctPatient.quantitiesOfInterest[0].array
-            elif unitInRTDose == "Gy/mCi" and self.unit == 'Gy/GBq':
-                self.ctPatient.quantitiesOfInterest[0].array = GBqInmCi * self.ctPatient.quantitiesOfInterest[0].array
-            elif unitInRTDose == "Gy/mCi" and self.unit == 'mGy/mCi':
-                self.ctPatient.quantitiesOfInterest[0].array = 1000 * self.ctPatient.quantitiesOfInterest[0].array
-            elif unitInRTDose == "mGy/mCi" and self.unit == 'Gy/GBq':
-                self.ctPatient.quantitiesOfInterest[0].array = GBqInmCi * 1000 * self.ctPatient.quantitiesOfInterest[0].array
-            elif unitInRTDose == "mGy/mCi" and self.unit == 'Gy/mCi':
-                self.ctPatient.quantitiesOfInterest[0].array = 1000 * self.ctPatient.quantitiesOfInterest[0].array
-        self.ctPatient.quantitiesOfInterest[0].unit = self.unit
 
 
 

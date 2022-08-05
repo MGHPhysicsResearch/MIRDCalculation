@@ -228,7 +228,7 @@ class DicomPatient:
             name = ROI1 + '-int-' + name2
         self.structures3D[name] = res
 
-    def LoadRTDose(self, RTDosePath, quantity = 'Dose', unit = None, doseScale=1):
+    def LoadRTDose(self, RTDosePath, quantity = 'Dose', unit=None, desiredUnit='Gy/GBq', nHistories=0):
         '''
         Loads dose from DICOM RTDose file as 3D array.
         
@@ -263,7 +263,37 @@ class DicomPatient:
                 qoi.unit = 'arb. unit'
         self.quantitiesOfInterest.append(qoi)
         print(quantity + ' array loaded with units ' + qoi.unit)
-    
+        self._convertDoseUnits(desiredUnit, nHistories)
+
+    def _convertDoseUnits(self, unit, nHistories):
+        cumulatedActivityPermCi = 12337446 # MBq s
+        GBqInmCi = 1/0.037
+        for i, q in enumerate(self.quantitiesOfInterest):
+            unitInRTDose = q.unit
+            if nHistories > 0 and unitInRTDose == 'arb. unit':
+                simulatedActivity = nHistories / 1e6  # MBq
+                if unit == 'Gy/GBq':
+                    self.quantitiesOfInterest[i].array = cumulatedActivityPermCi/simulatedActivity * GBqInmCi * q.array
+                if unit == 'Gy/mCi':
+                    self.quantitiesOfInterest[i].array = cumulatedActivityPermCi / simulatedActivity * q.array
+                if unit == 'mGy/mCi':
+                    self.quantitiesOfInterest[i].array = cumulatedActivityPermCi / simulatedActivity / 1000 * q.array
+            elif unitInRTDose != unit:
+                if unitInRTDose == 'Gy/GBq' and unit == 'Gy/mCi':
+                    self.quantitiesOfInterest[i].array = 1/GBqInmCi * q.array
+                elif unitInRTDose == "Gy/GBq" and unit == "mGy/mCi":
+                    self.quantitiesOfInterest[i].array = 1/GBqInmCi / 1000 * q.array
+                elif unitInRTDose == "Gy/mCi" and unit == 'Gy/GBq':
+                    self.quantitiesOfInterest[i].array = GBqInmCi * q.array
+                elif unitInRTDose == "Gy/mCi" and unit == 'mGy/mCi':
+                    self.quantitiesOfInterest[i].array = 1000 * q.array
+                elif unitInRTDose == "mGy/mCi" and unit == 'Gy/GBq':
+                    self.quantitiesOfInterest[i].array = GBqInmCi * 1000 * q.array
+                elif unitInRTDose == "mGy/mCi" and unit == 'Gy/mCi':
+                    self.quantitiesOfInterest[i].array = 1000 * q.array
+            self.quantitiesOfInterest[i].unit = unit
+            print(str(q.quantity) + " units converted from " + unitInRTDose + " to " + unit)
+
     def DoseInterpolationToCTGrid(self, dosegrid, dx, dy, dz, iniPos, threshold = None):
         shape = self.img3D.shape
         doseCTgrid = np.zeros(shape)

@@ -13,6 +13,7 @@ basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/
 
 # 2. RTDOSE filename
 doseFile = 'DoseOnCTGrid.dcm'
+bedFile = ''
 
 # 3. Radionuclide used and (optional) number of histories if RTDose file was obtained from MC/TOPAS,  and desired unit for output
 radionuclide = 'Y90'
