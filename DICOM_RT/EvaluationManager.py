@@ -119,6 +119,8 @@ class EvaluationManager:
                     DVHVolume = self.QoiDVHDataFrames[i][ROIName]
         if DVHVolume[1] == 0.5 and DVHVolume[2] == 0:
             return 0
+        if dose > np.max(DVHDose) or dose < np.min(DVHDose):
+            return 0
         f = interp1d(DVHDose, DVHVolume)
         return float(f(dose))
 

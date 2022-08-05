@@ -8,7 +8,7 @@ Created on Thu Aug 4 14:16:34 2022
 from reports import *
 
 # Patient directory
-basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient2/'
+basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient6/'
 
 # Create report
 rep = reportDosePerActivity(basePath, 'lung')

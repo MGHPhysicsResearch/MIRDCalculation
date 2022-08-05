@@ -24,9 +24,7 @@ class reportDosePerActivity:
         ctPath = self.path + "/CT/"
         self.patientCT = DicomPatient.PatientCT(ctPath)
         self.dosecsv = pd.read_csv(self.path + "/Dose.csv")
-        self.eqd2csv = pd.read_csv(self.path + "/EQD_2.csv")
         self.dosecsv = self._reorderDataFrame(self.dosecsv)
-        self.eqd2csv = self._reorderDataFrame(self.eqd2csv)
 
     def _getBiophysicalParameters(self):
         bioeffect = bioData.BioeffectData()
@@ -73,41 +71,37 @@ class reportDosePerActivity:
         self.pdf.cell(5, 7, 'Dosimetry date: ' + str(now.strftime("%Y-%m-%d")))
         self.pdf.ln()
         self.pdf.set_font(font, 'B', fontsize)
-        self.pdf.cell(10, 10, 'Parameters used for EQD_2 calculation')
-        self.pdf.set_font(font, fontstyle, fontsize)
-        self.pdf.ln()
-        self.pdf.cell(10, 5, 'Alpha/Beta (tumor): ' + str(self.alphabetaT) + ' Gy. Trep (tumor): ' + str(self.trepT / 3600) + ' h')
-        for i, r in enumerate(self.rois):
-            self.pdf.ln()
-            self.pdf.cell(10, 5, 'Alpha/Beta (' + r + '): ' + str(self.alphabetaN[i]) + ' Gy. Trep (' + r + '): ' + str(self.trepN[i] / 3600) + ' h')
-        self.pdf.ln()
-        self.pdf.set_font(font, 'B', fontsize)
         self.pdf.cell(40, 10, 'Dose-Volume Histogram')  # Title
         self.pdf.ln()
         self.pdf.image(self.path + '/Dose.png', 30, None, 120)
         self.pdf.ln()
+        self.pdf.cell(40, 10, 'Dose-Axial plane')  # Title
+        self.pdf.ln()
+        self.pdf.image(self.path + '/Dose_Axial.png', 30, None, 120)
+        self.pdf.ln()
         self.pdf.set_font(font, 'B', fontsize)
-        self.pdf.cell(40, 10, 'EQD2-Volume Histogram')  # Title
-        self.pdf.ln()
-        self.pdf.image(self.path + '/EQD_2.png', 30, None, 120)
-        self.pdf.ln()
-        self.pdf.cell(40, 10, 'EQD2-Axial plane')  # Title
-        self.pdf.ln()
-        self.pdf.image(self.path + '/EQD2_Axial.png', 30, None, 120)
         self.pdf.cell(40, 10, 'Summary - Absorbed Dose (Gy/GBq)')  # Title
         self.pdf.ln()
         dosecsvpdf = self.dosecsv.reset_index()
         numericCols = dosecsvpdf.select_dtypes(include='number').columns
         dosecsvpdf[numericCols] = dosecsvpdf[numericCols].round(2)
         self._outputdftopdf(dosecsvpdf)
+
+        self.pdf.cell(10, 10, 'Parameters used for EQD_2 calculation')
+        self.pdf.set_font(font, fontstyle, fontsize)
+        self.pdf.ln()
+        self.pdf.cell(10, 5, 'Alpha/Beta (tumor): ' + str(self.alphabetaT) + ' Gy. Trep (tumor): ' + str(
+            self.trepT / 3600) + ' h')
+        for i, r in enumerate(self.rois):
+            self.pdf.ln()
+            self.pdf.cell(10, 5, 'Alpha/Beta (' + r + '): ' + str(self.alphabetaN[i]) + ' Gy. Trep (' + r + '): ' + str(
+                self.trepN[i] / 3600) + ' h')
         self.pdf.ln()
         self.pdf.set_font(font, 'B', fontsize)
-        self.pdf.cell(40, 10, r'Summary - EQD_2 (Gy/GBq)')  # Title
+        self.pdf.cell(40, 10, 'Clinical endpoints vs activity')  # Title
         self.pdf.ln()
-        eqd2csvpdf = self.eqd2csv.reset_index()
-        numericCols = eqd2csvpdf.select_dtypes(include='number').columns
-        eqd2csvpdf[numericCols] = eqd2csvpdf[numericCols].round(2)
-        self._outputdftopdf(eqd2csvpdf)
+        self.pdf.image(self.path + '/predictiveActivityCurve.png', 30, None, 120)
+
 
 
     def OutputReport(self):
