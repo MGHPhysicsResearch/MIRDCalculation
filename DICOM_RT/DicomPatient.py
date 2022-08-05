@@ -26,7 +26,9 @@ class DicomPatient:
         for fname in filesInDir:
             if fname[-3:] == 'dcm':
                 self.dcmFiles.append(pydicom.dcmread(dicomDirectory + '/' + fname))
-        
+        self.patientName = self.dcmFiles[0].PatientName
+        self.studyDate = self.dcmFiles[0].StudyDate
+
     def FilterByModality(self, modality):
         modfiles = []
         for f in self.dcmFiles:
@@ -115,10 +117,10 @@ class DicomPatient:
             base.SeriesDescription = seriesDescription + 'DICOM_RT'
         # Date and time
         now = datetime.now()
-        base.StudyDate = now.strftime("%Y%M%d")
-        base.SeriesDate = now.strftime("%Y%M%d")
-        base.AcquisitionDate = now.strftime("%Y%M%d")
-        base.ContentDate = now.strftime("%Y%M%d")
+        base.StudyDate = now.strftime("%Y%m%d")
+        base.SeriesDate = now.strftime("%Y%m%d")
+        base.AcquisitionDate = now.strftime("%Y%m%d")
+        base.ContentDate = now.strftime("%Y%m%d")
         base.StudyTime = now.strftime("%H%M%S")
         base.SeriesTime = now.strftime("%H%M%S")
         base.AcquisitionTime = now.strftime("%H%M%S")

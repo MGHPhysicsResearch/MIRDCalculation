@@ -22,7 +22,7 @@ VERSION = '2.0.0'
 REQUIRED = ['numpy', 'pydicom', 'rt_utils']
 
 # Optional packages
-EXTRAS = { 'plots':['matplotlib'] }
+EXTRAS = { 'plots':['matplotlib'], 'reports':['fpdf'] }
 
 here = os.path.abspath(os.path.dirname(__file__))
 
