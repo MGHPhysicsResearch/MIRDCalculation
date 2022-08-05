@@ -26,7 +26,9 @@ class DicomPatient:
         for fname in filesInDir:
             if fname[-3:] == 'dcm':
                 self.dcmFiles.append(pydicom.dcmread(dicomDirectory + '/' + fname))
-        
+        self.patientName = self.dcmFiles[0].PatientName
+        self.studyDate = self.dcmFiles[0].StudyDate
+
     def FilterByModality(self, modality):
         modfiles = []
         for f in self.dcmFiles:
@@ -74,13 +76,14 @@ class DicomPatient:
         p.imshow(self.img3D[:,:,sliceNumber], extent=[minx,maxx,miny,maxy], cmap=colormap)
         p.set_aspect(self.axAspect)
         
-    def WriteRTDose(self, doseGrid = None, name = None, unit = None, seriesDescription = None):
+    def WriteRTDose(self, name = None, doseGrid = None, unit = None, seriesDescription = None):
         if doseGrid is None:
             try:
                 for q in self.quantitiesOfInterest:
                     if q.quantity == 'Dose':
                         doseGrid = q.array
-                        name = 'RTDose_' + datetime.now().strftime("%m%d%y_%H%M%S") + '.dcm'
+                        if name is None:
+                            name = 'RTDose_' + datetime.now().strftime("%m%d%y_%H%M%S") + '.dcm'
                         unit = q.unit
             except:
                 print("No dose grid was found.")
@@ -89,7 +92,7 @@ class DicomPatient:
             try:
                 for q in self.quantitiesOfInterest:
                     if q.quantity == doseGrid:
-                        if name == None:
+                        if name is None:
                             name = 'RTDose_' + doseGrid + '_' + datetime.now().strftime("%m%d%y_%H%M%S") + '.dcm'
                         doseGrid = q.array
                         unit = q.unit
@@ -115,10 +118,10 @@ class DicomPatient:
             base.SeriesDescription = seriesDescription + 'DICOM_RT'
         # Date and time
         now = datetime.now()
-        base.StudyDate = now.strftime("%Y%M%d")
-        base.SeriesDate = now.strftime("%Y%M%d")
-        base.AcquisitionDate = now.strftime("%Y%M%d")
-        base.ContentDate = now.strftime("%Y%M%d")
+        base.StudyDate = now.strftime("%Y%m%d")
+        base.SeriesDate = now.strftime("%Y%m%d")
+        base.AcquisitionDate = now.strftime("%Y%m%d")
+        base.ContentDate = now.strftime("%Y%m%d")
         base.StudyTime = now.strftime("%H%M%S")
         base.SeriesTime = now.strftime("%H%M%S")
         base.AcquisitionTime = now.strftime("%H%M%S")
@@ -226,7 +229,7 @@ class DicomPatient:
             name = ROI1 + '-int-' + name2
         self.structures3D[name] = res
 
-    def LoadRTDose(self, RTDosePath, quantity = 'Dose', unit = None, doseScale=1):
+    def LoadRTDose(self, RTDosePath, quantity = 'Dose', unit=None, desiredUnit='Gy/GBq', nHistories=0):
         '''
         Loads dose from DICOM RTDose file as 3D array.
         
@@ -261,7 +264,39 @@ class DicomPatient:
                 qoi.unit = 'arb. unit'
         self.quantitiesOfInterest.append(qoi)
         print(quantity + ' array loaded with units ' + qoi.unit)
-    
+        self._convertDoseUnits(desiredUnit, nHistories)
+
+    def _convertDoseUnits(self, unit, nHistories):
+        cumulatedActivityPermCi = 12337446 # MBq s
+        GBqInmCi = 1/0.037
+        for i, q in enumerate(self.quantitiesOfInterest):
+            unitInRTDose = q.unit
+            if nHistories > 0 and unitInRTDose == 'arb. unit':
+                simulatedActivity = nHistories / 1e6  # MBq
+                if unit == 'Gy/GBq':
+                    self.quantitiesOfInterest[i].array = cumulatedActivityPermCi/simulatedActivity * GBqInmCi * q.array
+                if unit == 'Gy/mCi':
+                    self.quantitiesOfInterest[i].array = cumulatedActivityPermCi / simulatedActivity * q.array
+                if unit == 'mGy/mCi':
+                    self.quantitiesOfInterest[i].array = cumulatedActivityPermCi / simulatedActivity / 1000 * q.array
+                print(str(q.quantity) + " units converted from " + unitInRTDose + " to " + unit)
+            elif unitInRTDose != unit:
+                if unitInRTDose == 'Gy/GBq' and unit == 'Gy/mCi':
+                    self.quantitiesOfInterest[i].array = 1/GBqInmCi * q.array
+                elif unitInRTDose == "Gy/GBq" and unit == "mGy/mCi":
+                    self.quantitiesOfInterest[i].array = 1/GBqInmCi / 1000 * q.array
+                elif unitInRTDose == "Gy/mCi" and unit == 'Gy/GBq':
+                    self.quantitiesOfInterest[i].array = GBqInmCi * q.array
+                elif unitInRTDose == "Gy/mCi" and unit == 'mGy/mCi':
+                    self.quantitiesOfInterest[i].array = 1000 * q.array
+                elif unitInRTDose == "mGy/mCi" and unit == 'Gy/GBq':
+                    self.quantitiesOfInterest[i].array = GBqInmCi * 1000 * q.array
+                elif unitInRTDose == "mGy/mCi" and unit == 'Gy/mCi':
+                    self.quantitiesOfInterest[i].array = 1000 * q.array
+                print(str(q.quantity) + " units converted from " + unitInRTDose + " to " + unit)
+            self.quantitiesOfInterest[i].unit = unit
+
+
     def DoseInterpolationToCTGrid(self, dosegrid, dx, dy, dz, iniPos, threshold = None):
         shape = self.img3D.shape
         doseCTgrid = np.zeros(shape)

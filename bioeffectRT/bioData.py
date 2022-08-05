@@ -52,6 +52,6 @@ class BioeffectData:
         ls = site.lower()
         if 'liver' in ls:
             ls = 'liver'
-        if 'lung_l' in ls or 'lung_r' in ls:
+        if 'lung_l' in ls or 'lung_r' in ls or 'right lung' in ls or 'left lung' in ls:
             ls = 'lung'
         return ls

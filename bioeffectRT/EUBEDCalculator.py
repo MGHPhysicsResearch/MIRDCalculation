@@ -8,6 +8,9 @@ Created on Mon Aug 1 13:38:00 2022
 
 import os
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
 from DICOM_RT import DicomPatient as dcmpat
 from DICOM_RT import EvaluationManager as evalman
 from bioData import BioeffectData
@@ -16,10 +19,9 @@ from MIRD.Svalues import Radionuclide
 class EUBEDCalculator:
     def __init__(self, basepath, dosefile, radionuclide, unit="Gy/GBq", nHistories=0, site=None):
         self.bioeffectData = BioeffectData()
-        self.unit = unit
-        self.nHistories = nHistories
         rn = Radionuclide(radionuclide)
         self.rnHalfLife = rn.halfLife
+        self.unit = unit
         if site is None:
             self.site = 'generic'
         else:
@@ -31,13 +33,14 @@ class EUBEDCalculator:
         self.basePath = basepath
         self.doseFileName = doseFileSplit
         self.ctPatient = dcmpat.PatientCT(ctPath)
-        self.ctPatient.LoadRTDose(dosePath)
+        self.ctPatient.LoadRTDose(dosePath, 'Dose', None, unit, nHistories)
         try:
             structFiles = os.listdir(basepath + "/RTSTRUCT/")
             structFile = [f for f in structFiles if 'dcm' in f]
             structPath = basepath + "/RTSTRUCT/" + structFile[0]
             self.ctPatient.LoadStructures(structPath)
         except Exception as e1:
+            print("ERROR: RTSTRUCT folder was not found. Exception: ", e1)
             print("ERROR: RTSTRUCT folder was not found. Exception: ", e1)
             try:
                 structFiles = os.listdir(basepath + "/RTSTRUCT_LUNGSANDLIVER/")
@@ -54,46 +57,41 @@ class EUBEDCalculator:
             if 'tumor' in struct.lower():
                 self.tumors.append(struct)
         print("Tumor structures identified: ", self.tumors)
-        self._convertDoseUnits()
         self.EQDXs = []
         self.Xs = []
 
-    def CalculateEQDXs(self, X=[0], doseThreshold=0.001):
-        doseArray = self.ctPatient.quantitiesOfInterest[0].array
-        threshold = doseThreshold * np.max(doseArray)
+    def CalculateEQDXs(self, X=[0], activityInjected = None):
         self.Xs = X
+        self.EQDXs = []
+        doseArray = self.ctPatient.quantitiesOfInterest[0].array
+        if self.ctPatient.quantitiesOfInterest[0].unit == 'Gy/GBq' and activityInjected is not None:
+            doseArray = doseArray * activityInjected
+        alphabetas = np.ones(doseArray.shape) * self.bioeffectData.getAlphaBetaValue('n', 'generic')
+        treps = np.ones(doseArray.shape) * self.bioeffectData.getTRepValue('n', 'generic')
+        for s in self.ROIs:
+            if s not in self.tumors:
+                alphabetas[self.ctPatient.structures3D[s]] = self.bioeffectData.getAlphaBetaValue('n', s)
+                treps[self.ctPatient.structures3D[s]] = self.bioeffectData.getTRepValue('n', s)
+        for t in self.tumors:
+            alphabetas[self.ctPatient.structures3D[t]] = self.bioeffectData.getAlphaBetaValue('t', t)
+            treps[self.ctPatient.structures3D[t]] = self.bioeffectData.getTRepValue('t', t)
         for x in X:
-            self.EQDXs.append(np.zeros(self.ctPatient.quantitiesOfInterest[0].array.shape))
-        for i in range(doseArray.shape[0]):
-            if (i % 20) == 0:
-                prog = i/doseArray.shape[0] * 100
-                print("Calculating EQDXs... (" + str(round(prog, 1)) + "%)")
-            for j in range(doseArray.shape[1]):
-                for k in range(doseArray.shape[2]):
-                    dose = doseArray[i, j, k]
-                    if dose >= threshold:
-                        trep = self.bioeffectData.getTRepValue('n', 'generic')
-                        alphabeta = self.bioeffectData.getAlphaBetaValue('n', 'generic')
-                        voxelBelongsToTumor = False
-                        for it, t in enumerate(self.tumors):
-                            if self.ctPatient.structures3D[t][i, j, k]:
-                                voxelBelongsToTumor = True
-                                trep = self.bioeffectData.getTRepValue('t', self.site)
-                                alphabeta = self.bioeffectData.getAlphaBetaValue('t', self.site)
-                                break
-                        if not voxelBelongsToTumor:
-                            for s in self.ROIs:
-                                if self.ctPatient.structures3D[s][i, j, k]:
-                                    trep = self.bioeffectData.getTRepValue('n', s)
-                                    alphabeta = self.bioeffectData.getAlphaBetaValue('n', s)
-                        for ix, x in enumerate(X):
-                            self.EQDXs[ix][i, j, k] = self._EQDX(x, dose, trep, alphabeta, self.rnHalfLife)
+            EQDX = self._EQDX(x, doseArray, treps, alphabetas, self.rnHalfLife)
+            self.EQDXs.append(EQDX)
         for i, x in enumerate(self.Xs):
             if x == 0:
-                qoi = dcmpat.QoIDistribution(self.EQDXs[i], 'BED', self.unit + '(BED)')
+                qoi = dcmpat.QoIDistribution(self.EQDXs[i], 'BED', 'Gy_BED')
             else:
-                qoi = dcmpat.QoIDistribution(self.EQDXs[i], 'EQD_' + str(x), self.unit + '(EQD_' + str(x) + ')')
-            self.ctPatient.quantitiesOfInterest.append(qoi)
+                qoi = dcmpat.QoIDistribution(self.EQDXs[i], 'EQD_' + str(x), 'Gy_EQD' + str(x))
+            found = False
+
+            for iq, q in enumerate(self.ctPatient.quantitiesOfInterest):
+                if q.quantity == qoi.quantity:
+                    self.ctPatient.quantitiesOfInterest[iq] = qoi
+                    found = True
+                    break
+            if not found:
+                self.ctPatient.quantitiesOfInterest.append(qoi)
         self.eval = evalman.EvaluationManager(self.ctPatient)
 
     def _EQDX(self, X, d, Trep, ab, tau):
@@ -109,19 +107,20 @@ class EUBEDCalculator:
             else:
                 description = 'EQD_' + str(x)
             name = description + self.doseFileName + '.dcm'
-            self.ctPatient.WriteRTDose(self.EQDXs[i], self.basePath+name, self.unit, description)
+            self.ctPatient.WriteRTDose(self.basePath+name, self.EQDXs[i], self.unit, description)
             print(self.basePath+name, " file saved.")
 
-    def ShowDVHs(self, path=None):
+    def ShowDVHs(self, Xs = None, path=None):
         self.eval.PlotDVHs('Dose', self.basePath)
         self.eval.printMainResults('Dose', self.basePath)
-        for x in self.Xs:
-            if x == 0:
-                quantity = 'BED'
-            else:
-                quantity = 'EQD_' + str(x)
-            self.eval.PlotDVHs(quantity, self.basePath)
-            self.eval.printMainResults(quantity, self.basePath)
+        if Xs is not None:
+            for x in Xs:
+                if x == 0:
+                    quantity = 'BED'
+                else:
+                    quantity = 'EQD_' + str(x)
+                self.eval.PlotDVHs(quantity, self.basePath)
+                self.eval.printMainResults(quantity, self.basePath)
 
     def EUEQDX(self, X, struct = None):
         if struct is None:
@@ -150,34 +149,78 @@ class EUBEDCalculator:
                 N = np.count_nonzero(voxels)
                 res.append(-1/alpha*np.log(sum/N))
                 print('EU' + quantity + ' for ' + site + " = " + str(res[-1]) + " " + unit)
+        if len(res) == 1:
+            res = res[0]
         return res
 
-    def _convertDoseUnits(self):
-        cumulatedActivityPermCi = 12337446 # MBq s
-        GBqInmCi = 1/0.037
-        unitInRTDose = self.ctPatient.quantitiesOfInterest[0].unit
-        if self.nHistories > 0 and unitInRTDose == 'arb. unit':
-            simulatedActivity = self.nHistories / 1e6  # MBq
-            if self.unit == 'Gy/GBq':
-                self.ctPatient.quantitiesOfInterest[0].array = cumulatedActivityPermCi/simulatedActivity * GBqInmCi * self.ctPatient.quantitiesOfInterest[0].array
-            if self.unit == 'Gy/mCi':
-                self.ctPatient.quantitiesOfInterest[0].array = cumulatedActivityPermCi / simulatedActivity * self.ctPatient.quantitiesOfInterest[0].array
-            if self.unit == 'mGy/mCi':
-                self.ctPatient.quantitiesOfInterest[0].array = cumulatedActivityPermCi / simulatedActivity / 1000 * self.ctPatient.quantitiesOfInterest[0].array
-        elif unitInRTDose != self.unit:
-            if unitInRTDose == 'Gy/GBq' and self.unit == 'Gy/mCi':
-                self.ctPatient.quantitiesOfInterest[0].array = 1/GBqInmCi * self.ctPatient.quantitiesOfInterest[0].array
-            elif unitInRTDose == "Gy/GBq" and self.unit == "mGy/mCi":
-                self.ctPatient.quantitiesOfInterest[0].array = 1/GBqInmCi / 1000 * self.ctPatient.quantitiesOfInterest[0].array
-            elif unitInRTDose == "Gy/mCi" and self.unit == 'Gy/GBq':
-                self.ctPatient.quantitiesOfInterest[0].array = GBqInmCi * self.ctPatient.quantitiesOfInterest[0].array
-            elif unitInRTDose == "Gy/mCi" and self.unit == 'mGy/mCi':
-                self.ctPatient.quantitiesOfInterest[0].array = 1000 * self.ctPatient.quantitiesOfInterest[0].array
-            elif unitInRTDose == "mGy/mCi" and self.unit == 'Gy/GBq':
-                self.ctPatient.quantitiesOfInterest[0].array = GBqInmCi * 1000 * self.ctPatient.quantitiesOfInterest[0].array
-            elif unitInRTDose == "mGy/mCi" and self.unit == 'Gy/mCi':
-                self.ctPatient.quantitiesOfInterest[0].array = 1000 * self.ctPatient.quantitiesOfInterest[0].array
-        self.ctPatient.quantitiesOfInterest[0].unit = self.unit
+    def GetPredictiveActivityCurves(self, metrics, structures, Xs, activityRange=[0.001, 1]):
+        self.Xs = Xs
+        for x in self.Xs:
+            if x == 0:
+                quantity = 'BED'
+            else:
+                quantity = 'EQD_' + str(x)
+        activity = np.linspace(activityRange[0], activityRange[1], 50)
+        results = []
+        headers = 'Activity'
+        for im, m in enumerate(metrics):
+            headers += ',' + str(m) + '_' + str(structures[im])
+            results.append(np.zeros(activity.shape))
+        for ia, a in enumerate(activity):
+            self.CalculateEQDXs(self.Xs, a)
+            for im, m in enumerate(metrics):
+                if 'EUEQDX' in m:
+                    results[im][ia] = self.EUEQDX(self.Xs, structures[im])
+                if 'MeanDose' in m:
+                    results[im][ia] = self.eval.GetMeanDose(structures[im], quantity)
+                if m[0] == 'D' and m[1].isnumeric():
+                    num = float(m[1:])/100
+                    results[im][ia] = self.eval.EvaluateD(num, structures[im], quantity)
+                if m[0] == 'V' and m[1].isnumeric():
+                    num = float(m[1:])
+                    results[im][ia] = 100*self.eval.EvaluateV(num, structures[im], quantity)
+        #headers += '\n'
+        lines = []
+        for ia, a in enumerate(activity):
+            line = str(a.round(2))
+            for ir, r in enumerate(results):
+                line += ',' + str(r[ia].round(2))
+            #line += '\n'
+            lines.append(line)
+        f = open(self.basePath + '/predictiveActivityCurves.csv', 'w+')
+        f.write(headers)
+        f.write('\n')
+        for l in lines:
+            f.write(l)
+            f.write('\n')
+        f.close()
 
-
-
+    def PlotPredictiveActivityCurves(self, path = None):
+        df = pd.read_csv(self.basePath + '/predictiveActivityCurves.csv')
+        fig = plt.figure(dpi=300)
+        ax = fig.add_subplot(1, 1, 1)
+        colormap = plt.cm.nipy_spectral
+        colors = [colormap(i) for i in np.linspace(1, 0, len(df.columns)-1)]
+        ax.set_prop_cycle('color', colors)
+        x = np.array(df.Activity)
+        for i in range(1, len(df.columns)):
+            y = np.array(df[df.columns[i]])
+            if df.columns[i][0] == 'V':
+                ax2 = ax.twinx()
+                ax2.plot(x, y, label=df.columns[i])
+                ax2.set_ylabel('Volume (%)')
+                ax2.legend(loc=4)
+                ax2.set_ylim([0, 100])
+            else:
+                ax.plot(x, y, label=df.columns[i])
+        ax.set_xlabel('Activity (GBq)')
+        ax.set_ylabel('EQDX (Gy_EQDX)')
+        ax.set_xlim([0, np.max(x)])
+        ax.set_ylim([0, None])
+        ax.legend()
+        plt.grid(alpha=0.7, ls='--')
+        if path is not None:
+            plt.savefig(path + "/predictiveActivityCurve.png")
+            print(path + "/predictiveActivityCurve.png saved.")
+        plt.show()
+        return fig

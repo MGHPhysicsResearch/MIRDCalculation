@@ -6,10 +6,11 @@ Created on Mon Aug 1 13:49:21 2022
 @authors: mjlindsey, alejandrobertolet
 """
 from EUBEDCalculator import *
+import numpy as np
 
 ### USER PARAMETERS ###
 # 1. Path to DICOM files
-basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient4/'
+basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient2/'
 
 # 2. RTDOSE filename
 doseFile = 'DoseOnCTGrid.dcm'
@@ -23,15 +24,19 @@ unit = 'Gy/GBq'
 site = "Lung"
 
 # 5. Select EQDXs to calculate (X=0 -> BED). Calculate also EQD_2Gy by default
-X = [0, 2]
+X = [2]
+
+# 6. Metrics to consider
+metrics = ['EUEQDX', 'MeanDose', 'EUEQDX', 'MeanDose','EUEQDX', 'MeanDose','EUEQDX', 'MeanDose','MeanDose']
+structures = ['Right-sided tumor 1', 'Right-sided tumor 1', 'Right-sided tumor 2', 'Right-sided tumor 2', 'Right-sided tumor 3',
+    'Right-sided tumor 3', 'Left-sided tumor', 'Left-sided tumor', 'Lung']
 
 # Main script
 calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site)
 # Option to get new structure such as lung - tumor (requires knowledge of the structure names for each patient)
-calc.ctPatient.addNewBooleanStructure('subtraction', 'Left Lung', 'Tumor')
-calc.CalculateEQDXs(X, 0.01)
-calc.WriteDICOMRTEQDXs()
+calc.ctPatient.addNewBooleanStructure('subtraction', 'Lung', ['Left-sided tumor', 'Right-sided tumor 1', 'Right-sided tumor 2', 'Right-sided tumor 3'])
+calc.GetPredictiveActivityCurves(metrics, structures, X)
+calc.PlotPredictiveActivityCurves(basePath)
 
 # Evaluate results and calculate EUBED
 calc.ShowDVHs()
-calc.EUEQDX(X)

@@ -117,7 +117,9 @@ class EvaluationManager:
                 if q.quantity == quantity:
                     DVHDose = self.QoiDVHDataFrames[i][quantity]
                     DVHVolume = self.QoiDVHDataFrames[i][ROIName]
-        if DVHVolume[2] < 0.01:
+        if DVHVolume[1] == 0.5 and DVHVolume[2] == 0:
+            return 0
+        if dose > np.max(DVHDose) or dose < np.min(DVHDose):
             return 0
         f = interp1d(DVHDose, DVHVolume)
         return float(f(dose))
@@ -131,7 +133,7 @@ class EvaluationManager:
                 if q.quantity == quantity:
                     DVHDose = self.QoiDVHDataFrames[i][quantity]
                     DVHVolume = self.QoiDVHDataFrames[i][ROIName]
-        if DVHVolume[2] < 0.01:
+        if DVHVolume[1] == 0.5 and DVHVolume[2] == 0:
             return 0
         f = interp1d(DVHVolume, DVHDose)
         return float(f(volume))
@@ -179,7 +181,7 @@ class EvaluationManager:
         return fig
 
     def printMainResults(self, quantity = 'Dose', path=None):
-        headers = 'Structure,Mean ' + quantity + ',Max ' + quantity + ',Min ' + quantity + ',D50,D98,D95,D90,D10,D5,D2'
+        headers = 'Structure,Mean' + quantity + ',Max' + quantity + ',Min' + quantity + ',D50,D98,D95,D90,D10,D5,D2'
         lines = []
         for ROIName in self.ROINames:
             line = ROIName + ','
