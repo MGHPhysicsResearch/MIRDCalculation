@@ -60,12 +60,14 @@ class EUBEDCalculator:
         self.EQDXs = []
         self.Xs = []
 
-    def CalculateEQDXs(self, X=[0], activityInjected = None):
+    def CalculateEQDXs(self, X=[0], activityInjected = None, scaleDose = False):
         self.Xs = X
         self.EQDXs = []
         doseArray = self.ctPatient.quantitiesOfInterest[0].array
         if self.ctPatient.quantitiesOfInterest[0].unit == 'Gy/GBq' and activityInjected is not None:
             doseArray = doseArray * activityInjected
+            if scaleDose:
+                self.ctPatient.quantitiesOfInterest[0].array = doseArray
         alphabetas = np.ones(doseArray.shape) * self.bioeffectData.getAlphaBetaValue('n', 'generic')
         treps = np.ones(doseArray.shape) * self.bioeffectData.getTRepValue('n', 'generic')
         for s in self.ROIs:
