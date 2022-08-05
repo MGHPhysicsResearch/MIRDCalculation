@@ -62,32 +62,18 @@ class EUBEDCalculator:
         doseArray = self.ctPatient.quantitiesOfInterest[0].array
         threshold = doseThreshold * np.max(doseArray)
         self.Xs = X
+        alphabetas = np.ones(doseArray.shape) * self.bioeffectData.getAlphaBetaValue('n', 'generic')
+        treps = np.ones(doseArray.shape) * self.bioeffectData.getTRepValue('n', 'generic')
+        for s in self.ROIs:
+            if s not in self.tumors:
+                alphabetas[self.ctPatient.structures3D[s]] = self.bioeffectData.getAlphaBetaValue('n', s)
+                treps[self.ctPatient.structures3D[s]] = self.bioeffectData.getTRepValue('n', s)
+        for t in self.tumors:
+            alphabetas[self.ctPatient.structures3D[t]] = self.bioeffectData.getAlphaBetaValue('t', t)
+            treps[self.ctPatient.structures3D[t]] = self.bioeffectData.getTRepValue('t', t)
         for x in X:
-            self.EQDXs.append(np.zeros(self.ctPatient.quantitiesOfInterest[0].array.shape))
-        for i in range(doseArray.shape[0]):
-            if (i % 20) == 0:
-                prog = i/doseArray.shape[0] * 100
-                print("Calculating EQDXs... (" + str(round(prog, 1)) + "%)")
-            for j in range(doseArray.shape[1]):
-                for k in range(doseArray.shape[2]):
-                    dose = doseArray[i, j, k]
-                    if dose >= threshold:
-                        trep = self.bioeffectData.getTRepValue('n', 'generic')
-                        alphabeta = self.bioeffectData.getAlphaBetaValue('n', 'generic')
-                        voxelBelongsToTumor = False
-                        for it, t in enumerate(self.tumors):
-                            if self.ctPatient.structures3D[t][i, j, k]:
-                                voxelBelongsToTumor = True
-                                trep = self.bioeffectData.getTRepValue('t', self.site)
-                                alphabeta = self.bioeffectData.getAlphaBetaValue('t', self.site)
-                                break
-                        if not voxelBelongsToTumor:
-                            for s in self.ROIs:
-                                if self.ctPatient.structures3D[s][i, j, k]:
-                                    trep = self.bioeffectData.getTRepValue('n', s)
-                                    alphabeta = self.bioeffectData.getAlphaBetaValue('n', s)
-                        for ix, x in enumerate(X):
-                            self.EQDXs[ix][i, j, k] = self._EQDX(x, dose, trep, alphabeta, self.rnHalfLife)
+            EQDX = self._EQDX(x, doseArray, treps, alphabetas, self.rnHalfLife)
+            self.EQDXs.append(EQDX)
         for i, x in enumerate(self.Xs):
             if x == 0:
                 qoi = dcmpat.QoIDistribution(self.EQDXs[i], 'BED', self.unit + '(BED)')
