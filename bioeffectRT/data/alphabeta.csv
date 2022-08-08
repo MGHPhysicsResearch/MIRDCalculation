@@ -1,6 +1,6 @@
 type,site,value
 n,generic,3.0
-n,lung,1.6
+n,lung,4.0
 n,liver,2.75
 t,generic,10.0
 t,lung,12.4

@@ -180,8 +180,8 @@ class EvaluationManager:
         plt.show()
         return fig
 
-    def printMainResults(self, quantity = 'Dose', path=None):
-        headers = 'Structure,Mean' + quantity + ',Max' + quantity + ',Min' + quantity + ',D50,D98,D95,D90,D10,D5,D2'
+    def printMainResults(self, quantity = 'Dose', path=None, filename=None):
+        headers = 'Structure,Mean' + quantity + ',Max' + quantity + ',Min' + quantity + ',D50,D98,D95,D90,D10,D5,D2,V20'
         lines = []
         for ROIName in self.ROINames:
             line = ROIName + ','
@@ -194,13 +194,17 @@ class EvaluationManager:
             line += str(self.EvaluateD(0.90, ROIName, quantity)) + ','
             line += str(self.EvaluateD(0.10, ROIName, quantity)) + ','
             line += str(self.EvaluateD(0.05, ROIName, quantity)) + ','
-            line += str(self.EvaluateD(0.02, ROIName, quantity))
+            line += str(self.EvaluateD(0.02, ROIName, quantity)) + ','
+            line += str(self.EvaluateV(20, ROIName, quantity))
             lines.append(line)
         print(headers)
         for l in lines:
             print(l)
         if path is not None:
-            f = open(path + quantity + '.csv', 'w+')
+            if filename is None:
+                f = open(path + quantity + '.csv', 'w+')
+            else:
+                f = open(path + filename, 'w+')
             f.write(headers)
             f.write('\n')
             for l in lines:

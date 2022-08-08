@@ -115,7 +115,7 @@ class EUBEDCalculator:
             else:
                 description = 'EQD_' + str(x)
             name = description + self.doseFileName + '.dcm'
-            self.ctPatient.WriteRTDose(self.basePath+name, self.EQDXs[i], self.unit, description)
+            self.ctPatient.WriteRTDose(self.basePath+name, self.EQDXs[i], "Gy", description)
             print(self.basePath+name, " file saved.")
 
     def WriteScaledDoseFile(self):
