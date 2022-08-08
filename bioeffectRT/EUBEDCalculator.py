@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 from DICOM_RT import DicomPatient as dcmpat
 from DICOM_RT import EvaluationManager as evalman
-from bioData import BioeffectData
+from bioeffectRT.bioData import BioeffectData
 from MIRD.Svalues import Radionuclide
 
 class EUBEDCalculator:
@@ -50,13 +50,18 @@ class EUBEDCalculator:
                 print("RTSTRUCT_LUNGSANDLIVER loaded instead.")
             except:
                 pass
-        self.ROIs = list(self.ctPatient.structures3D.keys())
-        print("ROIs identified: ", self.ROIs)
+        try:
+            self.ROIs = list(self.ctPatient.structures3D.keys())
+            print("ROIs identified: ", self.ROIs)
+        except:
+            self.ROIs = []
+            print("No structures identified.")
         self.tumors = []
-        for struct in self.ROIs:
-            if 'tumor' in struct.lower():
-                self.tumors.append(struct)
-        print("Tumor structures identified: ", self.tumors)
+        if len(self.ROIs) > 0:
+            for struct in self.ROIs:
+                if 'tumor' in struct.lower():
+                    self.tumors.append(struct)
+            print("Tumor structures identified: ", self.tumors)
         self.EQDXs = []
         self.Xs = []
 
@@ -94,7 +99,8 @@ class EUBEDCalculator:
                     break
             if not found:
                 self.ctPatient.quantitiesOfInterest.append(qoi)
-        self.eval = evalman.EvaluationManager(self.ctPatient)
+        if len(self.ROIs) > 0:
+            self.eval = evalman.EvaluationManager(self.ctPatient)
 
     def _EQDX(self, X, d, Trep, ab, tau):
         return d * (ab + Trep/(Trep+tau) * d) / (ab + X)
@@ -111,6 +117,11 @@ class EUBEDCalculator:
             name = description + self.doseFileName + '.dcm'
             self.ctPatient.WriteRTDose(self.basePath+name, self.EQDXs[i], self.unit, description)
             print(self.basePath+name, " file saved.")
+
+    def WriteScaledDoseFile(self):
+        description = "AccumulatedDose"
+        self.ctPatient.WriteRTDose(self.basePath+"/AccumulatedDose.dcm", self.ctPatient.quantitiesOfInterest[0].array, "Gy", description)
+        print(self.basePath+"/AccumulatedDose.dcm", " file saved.")
 
     def ShowDVHs(self, Xs = None, path=None):
         self.eval.PlotDVHs('Dose', self.basePath)
