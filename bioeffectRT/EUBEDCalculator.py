@@ -177,14 +177,17 @@ class EUBEDCalculator:
         results = []
         headers = 'Activity'
         for im, m in enumerate(metrics):
-            headers += ',' + str(m) + '_' + str(structures[im])
+            newQ = str(m)
+            if 'EQDX' in str(m):
+                newQ = str(m).replace('EQDX', quantity)
+            headers += ',' + newQ + '-' + str(structures[im])
             results.append(np.zeros(activity.shape))
         for ia, a in enumerate(activity):
             self.CalculateEQDXs(self.Xs, a)
             for im, m in enumerate(metrics):
                 if 'EUEQDX' in m:
                     results[im][ia] = self.EUEQDX(self.Xs, structures[im])
-                if 'MeanDose' in m:
+                if 'MeanEQDX' in m:
                     results[im][ia] = self.eval.GetMeanDose(structures[im], quantity)
                 if m[0] == 'D' and m[1].isnumeric():
                     num = float(m[1:])/100

@@ -2,7 +2,7 @@ from DICOM_RT import DicomPatient as dcmpat
 
 ### USER PARAMETERS ###
 # 1. Path to DICOM files
-basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient6/'
+basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient7/'
 doseFile = 'DoseOnCTGrid.dcm'
 
 # 2. Simulation parameters
