@@ -388,7 +388,23 @@ class DicomPatient:
                         print("Error at: ", iax, iay, iaz)
                         pass
         return doseCTgrid
-                
+
+    def RewriteRTStructAsCompatible(self, rtstruct_file):
+        # Load the RTSTRUCT file
+        rtstruct = pydicom.dcmread(rtstruct_file)
+        ct = self.dcmFiles[0]
+        # Set the SOP Class UID of the RTSTRUCT to the same as the CT file
+        rtstruct.SOPClassUID = ct.SOPClassUID
+        rtstruct.SOPInstanceUID = ct.SOPInstanceUID
+        rtstruct.StudyInstanceUID = ct.StudyInstanceUID
+        rtstruct.SeriesInstanceUID = ct.SeriesInstanceUID
+        rtstruct.FrameOfReferenceUID = ct.FrameOfReferenceUID
+        rtstruct.ReferencedSOPClassUID = ct.SOPClassUID
+        rtstruct.ReferencedSOPInstanceUID = ct.SOPInstanceUID
+        rtstruct.ReferencedFrameOfReferenceUID = ct.FrameOfReferenceUID
+        # Save the updated RTSTRUCT file
+        rtstruct.save_as(rtstruct_file)
+
     def __distance(self, pos1, pos2):
         pos1 = np.array(pos1)
         pos2 = np.array(pos2)
@@ -424,7 +440,6 @@ class PatientCT(DicomPatient):
         for i, s in enumerate(self.slices):
             img2D = s.pixel_array
             self.img3D[:, :, i] = img2D
-                            
 
 class Patient3DActivity(DicomPatient):
     def __init__(self, dicomDirectory):
