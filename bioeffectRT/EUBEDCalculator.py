@@ -17,7 +17,7 @@ from bioeffectRT.bioData import BioeffectData
 from MIRD.Svalues import Radionuclide
 
 class EUBEDCalculator:
-    def __init__(self, basepath, dosefile, radionuclide, unit="Gy/GBq", nHistories=0, site=None):
+    def __init__(self, basepath, dosefile, radionuclide, unit="Gy/GBq", nHistories=0, site=None, rtstructpath='/RTSTRUCT/'):
         self.bioeffectData = BioeffectData()
         rn = Radionuclide(radionuclide)
         self.rnHalfLife = rn.halfLife
@@ -35,13 +35,13 @@ class EUBEDCalculator:
         self.ctPatient = dcmpat.PatientCT(ctPath)
         self.ctPatient.LoadRTDose(dosePath, 'Dose', None, unit, nHistories)
         try:
-            structFiles = os.listdir(basepath + "/RTSTRUCT/")
+            structFiles = os.listdir(basepath + rtstructpath)
             structFile = [f for f in structFiles if 'dcm' in f]
-            structPath = basepath + "/RTSTRUCT/" + structFile[0]
+            structPath = basepath + rtstructpath + structFile[0]
             self.ctPatient.LoadStructures(structPath)
         except Exception as e1:
-            print("ERROR: RTSTRUCT folder was not found. Exception: ", e1)
-            print("ERROR: RTSTRUCT folder was not found. Exception: ", e1)
+            print("ERROR: " + rtstructpath + " folder was not found. Exception: ", e1)
+            print("ERROR: " + rtstructpath + " folder was not found. Exception: ", e1)
             try:
                 structFiles = os.listdir(basepath + "/RTSTRUCT_LUNGSANDLIVER/")
                 structFile = [f for f in structFiles if 'dcm' in f]
