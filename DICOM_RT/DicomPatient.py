@@ -394,14 +394,37 @@ class DicomPatient:
         rtstruct = pydicom.dcmread(rtstruct_file)
         ct = self.dcmFiles[0]
         # Set the SOP Class UID of the RTSTRUCT to the same as the CT file
-        rtstruct.SOPClassUID = ct.SOPClassUID
-        rtstruct.SOPInstanceUID = ct.SOPInstanceUID
+        rtstruct.SOPClassUID = '1.2.840.10008.5.1.4.1.1.481.3'
         rtstruct.StudyInstanceUID = ct.StudyInstanceUID
         rtstruct.SeriesInstanceUID = ct.SeriesInstanceUID
         rtstruct.FrameOfReferenceUID = ct.FrameOfReferenceUID
         rtstruct.ReferencedSOPClassUID = ct.SOPClassUID
         rtstruct.ReferencedSOPInstanceUID = ct.SOPInstanceUID
         rtstruct.ReferencedFrameOfReferenceUID = ct.FrameOfReferenceUID
+        # Get the corresponding SOP Instance UID for each pair contour/slice
+        for i, structure in enumerate(rtstruct.ROIContourSequence):
+            for j, contour in enumerate(rtstruct.ROIContourSequence[i].ContourSequence):
+                contour_z = float(contour.ContourData[2])
+                # Initialize variabels to store the closest slice
+                closest_slice = None
+                smallest_difference = float('inf')
+                # Loop through all slices
+                for slice in self.dcmFiles:
+                    # Get the slice position
+                    slice_z = float(slice.ImagePositionPatient[2])
+                    # Calculate the difference between the slice position and the contour position
+                    difference = abs(slice_z - contour_z)
+                    # If the difference is smaller than the previous one, store the slice
+                    if difference < smallest_difference:
+                        closest_slice = slice
+                        smallest_difference = difference
+                # Set the corresponding SOP Instance UID
+                rtstruct.ROIContourSequence[i].ContourSequence[j].ReferencedSOPInstanceUID = closest_slice.SOPInstanceUID
+        for ii, rfofseq in enumerate(rtstruct.ReferencedFrameOfReferenceSequence):
+            for jj, rssq in enumerate(rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence):
+                for kk, rsseq in enumerate(rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence[jj].RTReferencedSeriesSequence):
+                    for i, slice in enumerate(self.dcmFiles):
+                        rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence[jj].RTReferencedSeriesSequence[kk].ContourImageSequence[i].ReferencedSOPInstanceUID =slice.SOPInstanceUID
         # Save the updated RTSTRUCT file
         rtstruct.save_as(rtstruct_file)
 

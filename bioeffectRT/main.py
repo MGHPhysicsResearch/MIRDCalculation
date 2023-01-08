@@ -10,7 +10,7 @@ import numpy as np
 
 ### USER PARAMETERS ###
 # 1. Path to DICOM files
-basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient7/'
+basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/workspace/BronchialSIR/Patient3/'
 
 # 2. RTDOSE filename
 doseFile = 'DoseOnCTGrid.dcm'
@@ -32,7 +32,7 @@ structures = ['Tumor', 'Tumor', 'Tc99m-MAA Injected Tumor', 'Tc99m-MAA Injected 
     'Right lung', 'Left lung', 'Left lung']
 
 # Main script
-calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site)
+calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site, rtstructpath='/RTSTRUCT_Corrected/')
 # Option to get new structure such as lung - tumor (requires knowledge of the structure names for each patient)
 #calc.ctPatient.addNewBooleanStructure('subtraction', 'Lung', ['Left-sided tumor', 'Right-sided tumor 1', 'Right-sided tumor 2', 'Right-sided tumor 3'])
 calc.GetPredictiveActivityCurves(metrics, structures, X)
