@@ -7,6 +7,7 @@ Created on Thu May 27 16:09:19 2021
 """
 
 from os import listdir
+from typing import List, Any
 
 import numpy as np
 import pydicom
@@ -420,11 +421,27 @@ class DicomPatient:
                         smallest_difference = difference
                 # Set the corresponding SOP Instance UID
                 rtstruct.ROIContourSequence[i].ContourSequence[j].ReferencedSOPInstanceUID = closest_slice.SOPInstanceUID
+                for k, imagecontour in enumerate(rtstruct.ROIContourSequence[i].ContourSequence[j].ContourImageSequence):
+                    rtstruct.ROIContourSequence[i].ContourSequence[j].ContourImageSequence[k].ReferencedSOPInstanceUID = closest_slice.SOPInstanceUID
+
+        # Getting ordered list of SOP Instance UIDs
+        sop_list = []
+        for slice in self.dcmFiles:
+            sop_list.append(slice.SOPInstanceUID)
+        sop_list.sort()
+
         for ii, rfofseq in enumerate(rtstruct.ReferencedFrameOfReferenceSequence):
+            rtstruct.ReferencedFrameOfReferenceSequence[ii].FrameOfReferenceUID = ct.FrameOfReferenceUID
             for jj, rssq in enumerate(rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence):
                 for kk, rsseq in enumerate(rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence[jj].RTReferencedSeriesSequence):
-                    for i, slice in enumerate(self.dcmFiles):
-                        rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence[jj].RTReferencedSeriesSequence[kk].ContourImageSequence[i].ReferencedSOPInstanceUID =slice.SOPInstanceUID
+                    # Get a list of the indexes of the sorted SOP Instance UIDs
+                    refsop_list = []
+                    for i, contour in enumerate(rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence[jj].RTReferencedSeriesSequence[kk].ContourImageSequence):
+                        refsop_list.append((contour.ReferencedSOPInstanceUID, i))
+                    refsop_list.sort(key=lambda tup: tup[0])
+                    for i, contour in enumerate(rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence[jj].RTReferencedSeriesSequence[kk].ContourImageSequence):
+                        index = refsop_list[i][1]
+                        rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence[jj].RTReferencedSeriesSequence[kk].ContourImageSequence[index].ReferencedSOPInstanceUID = sop_list[i]
         # Save the updated RTSTRUCT file
         rtstruct.save_as(rtstruct_file)
 

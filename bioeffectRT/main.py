@@ -27,9 +27,8 @@ site = "Lung"
 X = [2]
 
 # 6. Metrics to consider
-metrics = ['EUEQDX', 'MeanEQDX', 'EUEQDX', 'MeanEQDX','EUEQDX', 'MeanEQDX','EUEQDX', 'MeanEQDX']
-structures = ['Tumor', 'Tumor', 'Tc99m-MAA Injected Tumor', 'Tc99m-MAA Injected Tumor', 'Right lung',
-    'Right lung', 'Left lung', 'Left lung']
+metrics = ['EUEQDX', 'MeanEQDX', 'EUEQDX', 'MeanEQDX','EUEQDX', 'MeanEQDX']
+structures = ['LEFT TUMOR', 'LEFT TUMOR', 'RIGHT LUNG', 'RIGHT LUNG', 'LEFT LUNG', 'LEFT LUNG']
 
 # Main script
 calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site, rtstructpath='/RTSTRUCT_Corrected/')
