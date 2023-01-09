@@ -16,7 +16,7 @@ URL = 'https://github.com/mghro/MIRDCalculation'
 EMAIL = 'abertoletreina@mgh.harvard.edu'
 AUTHOR = 'Alejandro Bertolet'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '2.0.0'
+VERSION = '2.1.0'
 
 # Required packages for this module to be executed
 REQUIRED = ['numpy', 'pydicom', 'rt_utils']
@@ -86,8 +86,8 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
-    packages=['DICOM_RT', 'MIRD','bioeffectRT'],
-    package_dir={'DICOM_RT': 'DICOM_RT', 'MIRD': 'MIRD', 'bioeffectRT': 'bioeffectRT'},
+    packages=['DICOM_RT', 'MIRD', 'bioeffectRT', 'reportingRPT'],
+    package_dir={'DICOM_RT': 'DICOM_RT', 'MIRD': 'MIRD', 'bioeffectRT': 'bioeffectRT', 'reportingRPT': 'reportingRPT'},
     package_data={'MIRD': ['VoxelSValues/*.txt'], 'bioeffectRT' : ['data/*.csv']},
     install_requires=REQUIRED,
     extras_require=EXTRAS,
