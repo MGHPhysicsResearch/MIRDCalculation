@@ -213,7 +213,7 @@ class DicomPatient:
         self.structures3D = dict(zip(self.ROINames, structures3DList))
         print('Structures loaded.')
 
-    def addNewBooleanStructure(self, operation, ROI1, ROI2):
+    def addNewBooleanStructure(self, operation, ROI1, ROI2, newname=None):
         if type(ROI2) is list:
             struct2 = self.structures3D[ROI2[0]]
             for i in range(1, len(ROI2)):
@@ -231,6 +231,8 @@ class DicomPatient:
         elif operation.lower() == 'intersection':
             res = Operations.Intersection(self.structures3D[ROI1], struct2)
             name = ROI1 + '-int-' + name2
+        if newname is not None:
+            name = newname
         self.structures3D[name] = res
 
     def LoadRTDose(self, RTDosePath, quantity = 'Dose', unit=None, desiredUnit='Gy/GBq', nHistories=0):
