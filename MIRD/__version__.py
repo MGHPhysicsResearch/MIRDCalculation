@@ -6,6 +6,6 @@ Created on Wed Nov 17 15:26:24 2021
 @author: alejandrobertolet
 """
 
-VERSION = (1, 1, 0)
+VERSION = (2, 1, 0)
 
 __version__ = '.'.join(map(str, VERSION))
