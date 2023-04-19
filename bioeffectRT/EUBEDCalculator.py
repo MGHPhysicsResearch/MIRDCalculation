@@ -6,18 +6,18 @@ Created on Mon Aug 1 13:38:00 2022
 @authors: mjlindsey, alejandrobertolet
 """
 
-import os
+import os, re
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 from DICOM_RT import DicomPatient as dcmpat
 from DICOM_RT import EvaluationManager as evalman
-from bioData import BioeffectData
+from bioeffectRT.bioData import BioeffectData
 from MIRD.Svalues import Radionuclide
 
 class EUBEDCalculator:
-    def __init__(self, basepath, dosefile, radionuclide, unit="Gy/GBq", nHistories=0, site=None):
+    def __init__(self, basepath, dosefile, radionuclide, unit="Gy/GBq", nHistories=0, site=None, rtstructpath='/RTSTRUCT/'):
         self.bioeffectData = BioeffectData()
         rn = Radionuclide(radionuclide)
         self.rnHalfLife = rn.halfLife
@@ -35,13 +35,13 @@ class EUBEDCalculator:
         self.ctPatient = dcmpat.PatientCT(ctPath)
         self.ctPatient.LoadRTDose(dosePath, 'Dose', None, unit, nHistories)
         try:
-            structFiles = os.listdir(basepath + "/RTSTRUCT/")
+            structFiles = os.listdir(basepath + rtstructpath)
             structFile = [f for f in structFiles if 'dcm' in f]
-            structPath = basepath + "/RTSTRUCT/" + structFile[0]
+            structPath = basepath + rtstructpath + structFile[0]
             self.ctPatient.LoadStructures(structPath)
         except Exception as e1:
-            print("ERROR: RTSTRUCT folder was not found. Exception: ", e1)
-            print("ERROR: RTSTRUCT folder was not found. Exception: ", e1)
+            print("ERROR: " + rtstructpath + " folder was not found. Exception: ", e1)
+            print("ERROR: " + rtstructpath + " folder was not found. Exception: ", e1)
             try:
                 structFiles = os.listdir(basepath + "/RTSTRUCT_LUNGSANDLIVER/")
                 structFile = [f for f in structFiles if 'dcm' in f]
@@ -50,22 +50,29 @@ class EUBEDCalculator:
                 print("RTSTRUCT_LUNGSANDLIVER loaded instead.")
             except:
                 pass
-        self.ROIs = list(self.ctPatient.structures3D.keys())
-        print("ROIs identified: ", self.ROIs)
+        try:
+            self.ROIs = list(self.ctPatient.structures3D.keys())
+            print("ROIs identified: ", self.ROIs)
+        except:
+            self.ROIs = []
+            print("No structures identified.")
         self.tumors = []
-        for struct in self.ROIs:
-            if 'tumor' in struct.lower():
-                self.tumors.append(struct)
-        print("Tumor structures identified: ", self.tumors)
+        if len(self.ROIs) > 0:
+            for struct in self.ROIs:
+                if 'tumor' in struct.lower():
+                    self.tumors.append(struct)
+            print("Tumor structures identified: ", self.tumors)
         self.EQDXs = []
         self.Xs = []
 
-    def CalculateEQDXs(self, X=[0], activityInjected = None):
+    def CalculateEQDXs(self, X=[0], activityInjected = None, scaleDose = False):
         self.Xs = X
         self.EQDXs = []
         doseArray = self.ctPatient.quantitiesOfInterest[0].array
         if self.ctPatient.quantitiesOfInterest[0].unit == 'Gy/GBq' and activityInjected is not None:
             doseArray = doseArray * activityInjected
+            if scaleDose:
+                self.ctPatient.quantitiesOfInterest[0].array = doseArray
         alphabetas = np.ones(doseArray.shape) * self.bioeffectData.getAlphaBetaValue('n', 'generic')
         treps = np.ones(doseArray.shape) * self.bioeffectData.getTRepValue('n', 'generic')
         for s in self.ROIs:
@@ -73,8 +80,8 @@ class EUBEDCalculator:
                 alphabetas[self.ctPatient.structures3D[s]] = self.bioeffectData.getAlphaBetaValue('n', s)
                 treps[self.ctPatient.structures3D[s]] = self.bioeffectData.getTRepValue('n', s)
         for t in self.tumors:
-            alphabetas[self.ctPatient.structures3D[t]] = self.bioeffectData.getAlphaBetaValue('t', t)
-            treps[self.ctPatient.structures3D[t]] = self.bioeffectData.getTRepValue('t', t)
+            alphabetas[self.ctPatient.structures3D[t]] = self.bioeffectData.getAlphaBetaValue('t', self.site)
+            treps[self.ctPatient.structures3D[t]] = self.bioeffectData.getTRepValue('t', self.site)
         for x in X:
             EQDX = self._EQDX(x, doseArray, treps, alphabetas, self.rnHalfLife)
             self.EQDXs.append(EQDX)
@@ -92,7 +99,8 @@ class EUBEDCalculator:
                     break
             if not found:
                 self.ctPatient.quantitiesOfInterest.append(qoi)
-        self.eval = evalman.EvaluationManager(self.ctPatient)
+        if len(self.ROIs) > 0:
+            self.eval = evalman.EvaluationManager(self.ctPatient)
 
     def _EQDX(self, X, d, Trep, ab, tau):
         return d * (ab + Trep/(Trep+tau) * d) / (ab + X)
@@ -107,8 +115,13 @@ class EUBEDCalculator:
             else:
                 description = 'EQD_' + str(x)
             name = description + self.doseFileName + '.dcm'
-            self.ctPatient.WriteRTDose(self.basePath+name, self.EQDXs[i], self.unit, description)
+            self.ctPatient.WriteRTDose(self.basePath+name, self.EQDXs[i], "Gy", description)
             print(self.basePath+name, " file saved.")
+
+    def WriteScaledDoseFile(self):
+        description = "AccumulatedDose"
+        self.ctPatient.WriteRTDose(self.basePath+"/AccumulatedDose.dcm", self.ctPatient.quantitiesOfInterest[0].array, "Gy", description)
+        print(self.basePath+"/AccumulatedDose.dcm", " file saved.")
 
     def ShowDVHs(self, Xs = None, path=None):
         self.eval.PlotDVHs('Dose', self.basePath)
@@ -129,10 +142,10 @@ class EUBEDCalculator:
             sites = [struct]
         for site in sites:
             if site in self.tumors:
-                alpha = self.bioeffectData.getAlphaValue('t', site)
+                alpha = self.bioeffectData.getAlphaValue('t', self.site)
                 #alpha = -10
             else:
-                alpha = self.bioeffectData.getAlphaValue('n', site)
+                alpha = self.bioeffectData.getAlphaValue('n', self.site)
             res = []
             for x in X:
                 if x == 0:
@@ -155,30 +168,60 @@ class EUBEDCalculator:
 
     def GetPredictiveActivityCurves(self, metrics, structures, Xs, activityRange=[0.001, 1]):
         self.Xs = Xs
-        for x in self.Xs:
-            if x == 0:
-                quantity = 'BED'
-            else:
-                quantity = 'EQD_' + str(x)
         activity = np.linspace(activityRange[0], activityRange[1], 50)
         results = []
         headers = 'Activity'
         for im, m in enumerate(metrics):
-            headers += ',' + str(m) + '_' + str(structures[im])
-            results.append(np.zeros(activity.shape))
+            newQ = str(m)
+            if 'EQDX' in str(m):
+                for x in self.Xs:
+                    if x == 0:
+                        quantity = 'BED'
+                    else:
+                        quantity = 'EQD_' + str(x)
+                    newQ = str(m).replace('EQDX', quantity)
+                    headers += ',' + newQ + '-' + str(structures[im])
+                    results.append(np.zeros(activity.shape))
+            else:
+                headers += ',' + newQ + '-' + str(structures[im])
+                results.append(np.zeros(activity.shape))
         for ia, a in enumerate(activity):
+            ir = 0
             self.CalculateEQDXs(self.Xs, a)
             for im, m in enumerate(metrics):
-                if 'EUEQDX' in m:
-                    results[im][ia] = self.EUEQDX(self.Xs, structures[im])
-                if 'MeanDose' in m:
-                    results[im][ia] = self.eval.GetMeanDose(structures[im], quantity)
-                if m[0] == 'D' and m[1].isnumeric():
-                    num = float(m[1:])/100
-                    results[im][ia] = self.eval.EvaluateD(num, structures[im], quantity)
-                if m[0] == 'V' and m[1].isnumeric():
-                    num = float(m[1:])
-                    results[im][ia] = 100*self.eval.EvaluateV(num, structures[im], quantity)
+                if 'EUEQDX' in str(m):
+                    res = self.EUEQDX(self.Xs, structures[im])
+                    for i, x in enumerate(self.Xs):
+                        results[ir][ia] = res[i]
+                        ir += 1
+                if 'MeanEQDX' in str(m):
+                    for x in self.Xs:
+                        if x == 0:
+                            quantity = 'BED'
+                        else:
+                            quantity = 'EQD_' + str(x)
+                        results[ir][ia] = self.eval.GetMeanDose(structures[im], quantity)
+                        ir += 1
+                if m[0] == 'D' and m[-1].isnumeric():
+                    for x in self.Xs:
+                        if x == 0:
+                            quantity = 'BED'
+                        else:
+                            quantity = 'EQD_' + str(x)
+                        match = re.search(r'\d{1,2}$', m)
+                        num = float(match.group(0)) / 100
+                        results[ir][ia] = self.eval.EvaluateD(num, structures[im], quantity)
+                        ir += 1
+                if m[0] == 'V' and m[-1].isnumeric():
+                    for x in self.Xs:
+                        if x == 0:
+                            quantity = 'BED'
+                        else:
+                            quantity = 'EQD_' + str(x)
+                        match = re.search(r'\d{1,2}$', m)
+                        num = float(match.group(0))
+                        results[ir][ia] = self.eval.EvaluateV(num, structures[im], quantity)
+                        ir += 1
         #headers += '\n'
         lines = []
         for ia, a in enumerate(activity):

@@ -10,7 +10,7 @@ import numpy as np
 
 ### USER PARAMETERS ###
 # 1. Path to DICOM files
-basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/BronchialSIR/Patient2/'
+basePath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/workspace/BronchialSIR/Patient3/'
 
 # 2. RTDOSE filename
 doseFile = 'DoseOnCTGrid.dcm'
@@ -27,14 +27,13 @@ site = "Lung"
 X = [2]
 
 # 6. Metrics to consider
-metrics = ['EUEQDX', 'MeanDose', 'EUEQDX', 'MeanDose','EUEQDX', 'MeanDose','EUEQDX', 'MeanDose','MeanDose']
-structures = ['Right-sided tumor 1', 'Right-sided tumor 1', 'Right-sided tumor 2', 'Right-sided tumor 2', 'Right-sided tumor 3',
-    'Right-sided tumor 3', 'Left-sided tumor', 'Left-sided tumor', 'Lung']
+metrics = ['EUEQDX', 'MeanEQDX', 'EUEQDX', 'MeanEQDX','EUEQDX', 'MeanEQDX']
+structures = ['LEFT TUMOR', 'LEFT TUMOR', 'RIGHT LUNG', 'RIGHT LUNG', 'LEFT LUNG', 'LEFT LUNG']
 
 # Main script
-calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site)
+calc = EUBEDCalculator(basePath, doseFile, radionuclide, unit, nHistories, site, rtstructpath='/RTSTRUCT_Corrected/')
 # Option to get new structure such as lung - tumor (requires knowledge of the structure names for each patient)
-calc.ctPatient.addNewBooleanStructure('subtraction', 'Lung', ['Left-sided tumor', 'Right-sided tumor 1', 'Right-sided tumor 2', 'Right-sided tumor 3'])
+#calc.ctPatient.addNewBooleanStructure('subtraction', 'Lung', ['Left-sided tumor', 'Right-sided tumor 1', 'Right-sided tumor 2', 'Right-sided tumor 3'])
 calc.GetPredictiveActivityCurves(metrics, structures, X)
 calc.PlotPredictiveActivityCurves(basePath)
 

@@ -7,6 +7,7 @@ Created on Thu May 27 16:09:19 2021
 """
 
 from os import listdir
+from typing import List, Any
 
 import numpy as np
 import pydicom
@@ -212,7 +213,7 @@ class DicomPatient:
         self.structures3D = dict(zip(self.ROINames, structures3DList))
         print('Structures loaded.')
 
-    def addNewBooleanStructure(self, operation, ROI1, ROI2):
+    def addNewBooleanStructure(self, operation, ROI1, ROI2, newname=None):
         if type(ROI2) is list:
             struct2 = self.structures3D[ROI2[0]]
             for i in range(1, len(ROI2)):
@@ -230,6 +231,8 @@ class DicomPatient:
         elif operation.lower() == 'intersection':
             res = Operations.Intersection(self.structures3D[ROI1], struct2)
             name = ROI1 + '-int-' + name2
+        if newname is not None:
+            name = newname
         self.structures3D[name] = res
 
     def LoadRTDose(self, RTDosePath, quantity = 'Dose', unit=None, desiredUnit='Gy/GBq', nHistories=0):
@@ -388,7 +391,62 @@ class DicomPatient:
                         print("Error at: ", iax, iay, iaz)
                         pass
         return doseCTgrid
-                
+
+    def RewriteRTStructAsCompatible(self, rtstruct_file):
+        # Load the RTSTRUCT file
+        rtstruct = pydicom.dcmread(rtstruct_file)
+        ct = self.dcmFiles[0]
+        # Set the SOP Class UID of the RTSTRUCT to the same as the CT file
+        rtstruct.SOPClassUID = '1.2.840.10008.5.1.4.1.1.481.3'
+        rtstruct.StudyInstanceUID = ct.StudyInstanceUID
+        rtstruct.SeriesInstanceUID = ct.SeriesInstanceUID
+        rtstruct.FrameOfReferenceUID = ct.FrameOfReferenceUID
+        rtstruct.ReferencedSOPClassUID = ct.SOPClassUID
+        rtstruct.ReferencedSOPInstanceUID = ct.SOPInstanceUID
+        rtstruct.ReferencedFrameOfReferenceUID = ct.FrameOfReferenceUID
+        # Get the corresponding SOP Instance UID for each pair contour/slice
+        for i, structure in enumerate(rtstruct.ROIContourSequence):
+            for j, contour in enumerate(rtstruct.ROIContourSequence[i].ContourSequence):
+                contour_z = float(contour.ContourData[2])
+                # Initialize variabels to store the closest slice
+                closest_slice = None
+                smallest_difference = float('inf')
+                # Loop through all slices
+                for slice in self.dcmFiles:
+                    # Get the slice position
+                    slice_z = float(slice.ImagePositionPatient[2])
+                    # Calculate the difference between the slice position and the contour position
+                    difference = abs(slice_z - contour_z)
+                    # If the difference is smaller than the previous one, store the slice
+                    if difference < smallest_difference:
+                        closest_slice = slice
+                        smallest_difference = difference
+                # Set the corresponding SOP Instance UID
+                rtstruct.ROIContourSequence[i].ContourSequence[j].ReferencedSOPInstanceUID = closest_slice.SOPInstanceUID
+                for k, imagecontour in enumerate(rtstruct.ROIContourSequence[i].ContourSequence[j].ContourImageSequence):
+                    rtstruct.ROIContourSequence[i].ContourSequence[j].ContourImageSequence[k].ReferencedSOPInstanceUID = closest_slice.SOPInstanceUID
+
+        # Getting ordered list of SOP Instance UIDs
+        sop_list = []
+        for slice in self.dcmFiles:
+            sop_list.append(slice.SOPInstanceUID)
+        sop_list.sort()
+
+        for ii, rfofseq in enumerate(rtstruct.ReferencedFrameOfReferenceSequence):
+            rtstruct.ReferencedFrameOfReferenceSequence[ii].FrameOfReferenceUID = ct.FrameOfReferenceUID
+            for jj, rssq in enumerate(rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence):
+                for kk, rsseq in enumerate(rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence[jj].RTReferencedSeriesSequence):
+                    # Get a list of the indexes of the sorted SOP Instance UIDs
+                    refsop_list = []
+                    for i, contour in enumerate(rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence[jj].RTReferencedSeriesSequence[kk].ContourImageSequence):
+                        refsop_list.append((contour.ReferencedSOPInstanceUID, i))
+                    refsop_list.sort(key=lambda tup: tup[0])
+                    for i, contour in enumerate(rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence[jj].RTReferencedSeriesSequence[kk].ContourImageSequence):
+                        index = refsop_list[i][1]
+                        rtstruct.ReferencedFrameOfReferenceSequence[ii].RTReferencedStudySequence[jj].RTReferencedSeriesSequence[kk].ContourImageSequence[index].ReferencedSOPInstanceUID = sop_list[i]
+        # Save the updated RTSTRUCT file
+        rtstruct.save_as(rtstruct_file)
+
     def __distance(self, pos1, pos2):
         pos1 = np.array(pos1)
         pos2 = np.array(pos2)
@@ -424,7 +482,6 @@ class PatientCT(DicomPatient):
         for i, s in enumerate(self.slices):
             img2D = s.pixel_array
             self.img3D[:, :, i] = img2D
-                            
 
 class Patient3DActivity(DicomPatient):
     def __init__(self, dicomDirectory):

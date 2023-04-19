@@ -267,7 +267,7 @@ class Radionuclide:
 
     @property
     def decayConstant(self):
-        return np.log(2) / self.halflife
+        return np.log(2) / self._halflife
 
     def __reverseRadionuclideName(self, name):
         number = ''
