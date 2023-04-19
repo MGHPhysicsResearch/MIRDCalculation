@@ -1,5 +1,5 @@
 type,site,value
-t,lung,0.17
-t,liver,0.27
-t,generic,1.0
-n,generic,1.0
+t,lung,0.03
+t,liver,0.036
+t,generic,0.1
+n,generic,0.1
