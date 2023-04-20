@@ -24,9 +24,9 @@ class DicomPatient:
         filesInDir = listdir(dicomDirectory)
         self.dcmFiles = []
         self.quantitiesOfInterest = []
+        # Assumes all files in dicomDirectory are DICOM files
         for fname in filesInDir:
-            if fname[-3:] == 'dcm':
-                self.dcmFiles.append(pydicom.dcmread(dicomDirectory + '/' + fname))
+            self.dcmFiles.append(pydicom.dcmread(dicomDirectory + '/' + fname))
         self.patientName = self.dcmFiles[0].PatientName
         self.studyDate = self.dcmFiles[0].StudyDate
 
@@ -36,6 +36,13 @@ class DicomPatient:
             if hasattr(f, 'Modality') and f.Modality == modality:
                 modfiles.append(f)
         self.dcmFiles = modfiles
+    
+    def GetSlices(self):
+        self.slices = []
+        for f in self.dcmFiles:
+            if hasattr(f, 'ImagePositionPatient'):
+                self.slices.append(f)
+        self.slices = sorted(self.slices, key=lambda s: s.ImagePositionPatient[2], reverse=False)
         
     def GetImageInfo(self):
         # Assumes that all slices have same characteristics
@@ -462,13 +469,6 @@ class PatientCT(DicomPatient):
         self.ReadPixelValues()
         self.Rescale()
         self.GetFrameOfReference()
-        
-    def GetSlices(self):
-        self.slices = []
-        for f in self.dcmFiles:
-            if hasattr(f, 'ImagePositionPatient'):
-                self.slices.append(f)
-        self.slices = sorted(self.slices, key=lambda s: s.ImagePositionPatient[2], reverse=False)
     
     def GetFrameOfReference(self):
         self.forUID = self.slices[0].FrameOfReferenceUID
@@ -486,30 +486,55 @@ class PatientCT(DicomPatient):
 class Patient3DActivity(DicomPatient):
     def __init__(self, dicomDirectory):
         DicomPatient.__init__(self, dicomDirectory)
-        self.FilterByModality('NM')
-        print('{} NM slices found'.format(len(self.dcmFiles)))
+        modalities = list(set([f.Modality for f in self.dcmFiles]))
+        if len(modalities) > 1:
+            modName = input('Multiple modalities found: {}\nType in and enter modality name...\n'.format(modalities))
+        elif len(modalities) == 1:
+            modName = modalities[0]
+        else:
+            raise Exception('Did not find any DICOM files with a given Modality tag!')
+        self.FilterByModality(modName)
+        print('{} {} slices found'.format(len(self.dcmFiles), modName))
         self.GetImageInfo()
         self.VoxelSize = self.sliceThickness
-        self.ReadPixelValues()
-        self.GetFrameOfReference()
+        if len(self.dcmFiles) == 1:
+            self.ReadPixelValues3D()
+            self.GetFrameOfReference3D()
+        else:
+            self.GetSlices()
+            # self.slices = self.slices[::-1]
+            self.ReadPixelValuesSlices()
+            self.Rescale()
+            self.GetFrameOfReferenceSlices()
         self.totalCounts = np.sum(self.img3D)
         
-    def GetFrameOfReference(self):
+    def GetFrameOfReference3D(self):
         self.forUID = self.dcmFiles[0].FrameOfReferenceUID
         self.firstVoxelPosDICOMCoordinates = self.dcmFiles[0].DetectorInformationSequence[0].ImagePositionPatient
-        
-    def ReadPixelValues(self):
+    
+    def GetFrameOfReferenceSlices(self):
+        self.forUID = self.slices[0].FrameOfReferenceUID
+        self.firstVoxelPosDICOMCoordinates = self.slices[0].ImagePositionPatient
+    
+    def ReadPixelValues3D(self):
         imgShape = list(self.dcmFiles[0].pixel_array.shape[1:])
         imgShape.append(self.dcmFiles[0].pixel_array.shape[0])
         self.img3D = np.zeros(imgShape)
         for i in range(0, self.dcmFiles[0].pixel_array.shape[0]):
             img2D = self.dcmFiles[0].pixel_array[i,:,:]
             self.img3D[:,:,i] = img2D
+
+    def ReadPixelValuesSlices(self):
+        imgShape = list(self.slices[0].pixel_array.shape)
+        imgShape.append(len(self.slices))
+        self.img3D = np.zeros(imgShape)
+        # Fill 3D array with the images from the files
+        for i, s in enumerate(self.slices):
+            img2D = s.pixel_array
+            self.img3D[:, :, i] = img2D
    
 class QoIDistribution:
     def __init__(self, array = None, quantity = None, unit = None):
         self.array = array
         self.quantity = quantity
         self.unit = unit
-
-        
