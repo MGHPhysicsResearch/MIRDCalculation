@@ -118,6 +118,7 @@ class DicomPatient:
         specificRootUID = '1.2.826.0.1.3680043.9.5872.'
         base.SOPInstanceUID = pydicom.uid.generate_uid(specificRootUID)
         base.SeriesInstanceUID = pydicom.uid.generate_uid(specificRootUID)
+        base.FrameOfReferenceUID = pydicom.uid.generate_uid(specificRootUID)
         base.Manufacturer = 'MIRDCalculator'
         base.ManufacturerModelName = 'DICOM_RT v1.2 by abertoletreina@mgh.harvard.edu'
         if seriesDescription is None:
@@ -136,6 +137,12 @@ class DicomPatient:
         base.ContentTime = now.strftime("%H%M%S")
         # Reshape dose grid
         doseGrid = self.reshapeZAxis(doseGrid)
+        # Check orientation
+        orientation = base.ImageOrientationPatient
+        row_orientation, column_orientation = orientation[:3], orientation[3:]
+        # Check if the CT slices are flipped along the z-axis
+        if np.cross(row_orientation, column_orientation)[-1] < 0:
+            doseGrid = np.flip(doseGrid, axis=0)
         base.PixelRepresentation = 0
         base.LargestImagePixelValue = int(np.ceil(np.max(doseGrid)))
         base['LargestImagePixelValue'].VR = 'US'
@@ -153,12 +160,23 @@ class DicomPatient:
         base.DoseGridScaling = slope
         base.DoseSummationType = 'PLAN'
         base.DoseUnits = unit
-        base.ImagePositionPatient = self.firstVoxelPosDICOMCoordinates
         base.NumberOfFrames = newGrid.shape[0]
         base.FrameIncrementPointer = (0x3004, 0x000c)
-        frame = []
-        for i in range(0, newGrid.shape[0]):
-            frame.append(i * self.sliceThickness)
+        # Get the z-coordinates of the CT slices
+        ct_slice_positions = [float(slice.ImagePositionPatient[2]) for slice in self.slices]
+        prone = False
+        firstslice = 0
+        if orientation[-2] == -1:
+            prone = True
+            firstslice = -1
+        # Set ImagePositionPatient to the position of the first CT slice
+        base.ImagePositionPatient = self.slices[firstslice].ImagePositionPatient
+        # Calculate the GridFrameOffsetVector based on the CT slice positions
+        frame = [pos - ct_slice_positions[firstslice] for pos in ct_slice_positions]
+        # If the dose grid has more slices than the CT, extend the frame with equal spacing
+        if newGrid.shape[0] > len(frame):
+            for i in range(len(frame), newGrid.shape[0]):
+                frame.append(frame[-1] + self.sliceThickness)
         base.GridFrameOffsetVector = frame
         base.PixelData = newGrid.tobytes()
         base.save_as(name)

@@ -13,8 +13,8 @@ from MIRDCalculator import *
 #############################################
 
 # 1. Paths of directories where CT and activity maps are located, respectively
-ctpath = '/Users/alejandrobertolet/Dropbox (Partners HealthCare)/Internal Dosimetry Project/LiverPatients/Patient1/PRETX/CT'
-nmpath = '/Users/alejandrobertolet/Dropbox (Partners HealthCare)/Internal Dosimetry Project/LiverPatients/Patient1/PRETX/NM'
+ctpath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/workspace/LiverPatients/Patient1/PRETX/CT'
+nmpath = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/workspace/LiverPatients/Patient1/PRETX/NM'
 # 2. Radionuclide (select from '89Sr', '90Y', '131I', '153Sm', '177Lu', 186Re' and '188Re')
 radionuclide = 'Y90'
 # 3. Type of tissue considered for the S-values (either'Soft' or 'Bone')
