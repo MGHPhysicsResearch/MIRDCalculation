@@ -26,7 +26,7 @@ class DicomPatient:
         self.quantitiesOfInterest = []
         # Assumes all files in dicomDirectory are DICOM files
         for fname in filesInDir:
-            self.dcmFiles.append(pydicom.dcmread(dicomDirectory + '/' + fname))
+            self.dcmFiles.append(pydicom.dcmread(dicomDirectory + '/' + fname, force=True))
         self.patientName = self.dcmFiles[0].PatientName
         self.studyDate = self.dcmFiles[0].StudyDate
 
