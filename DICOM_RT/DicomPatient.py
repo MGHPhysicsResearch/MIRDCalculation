@@ -51,6 +51,12 @@ class DicomPatient:
         self.axAspect = self.pixelSpacing[1] / self.pixelSpacing[0]
         self.sagAspect = self.pixelSpacing[1] / self.sliceThickness
         self.corAspect = self.sliceThickness / self.pixelSpacing[0]
+        # Check orientation
+        self.orientation = self.dcmFiles[0].ImageOrientationPatient
+        if self.orientation[0] == -1:
+            self.pixelSpacing[1] = -self.pixelSpacing[1]
+        if self.orientation[4] == -1:
+            self.pixelSpacing[0] = -self.pixelSpacing[0]
         
     def GetVoxelDICOMPosition(self, ix, iy, iz):
         xpos = self.firstVoxelPosDICOMCoordinates[0] + ix * self.pixelSpacing[1]
@@ -164,10 +170,8 @@ class DicomPatient:
         base.FrameIncrementPointer = (0x3004, 0x000c)
         # Get the z-coordinates of the CT slices
         ct_slice_positions = [float(slice.ImagePositionPatient[2]) for slice in self.slices]
-        prone = False
         firstslice = 0
-        if orientation[-2] == -1:
-            prone = True
+        if (orientation[0] == 1 and orientation[-2] == -1) or (orientation[0] == -1 and orientation[-2] == 1):
             firstslice = -1
         # Set ImagePositionPatient to the position of the first CT slice
         base.ImagePositionPatient = self.slices[firstslice].ImagePositionPatient
