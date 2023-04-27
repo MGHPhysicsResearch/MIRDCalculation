@@ -16,7 +16,9 @@ from rt_utils import RTStructBuilder
 import matplotlib.pylab as plt
 from datetime import datetime
 
-from DICOM_RT.StructureManager import Operations
+from scipy import ndimage
+
+from DICOM_RT.StructureManager import Operations, RTStructWriter
 
 class DicomPatient:
     def __init__(self, dicomDirectory):
@@ -484,6 +486,7 @@ class DicomPatient:
 class PatientCT(DicomPatient):
     def __init__(self, dicomDirectory):
         DicomPatient.__init__(self, dicomDirectory)
+        self.bodyMask = None
         self.FilterByModality('CT')
         self.GetSlices()
         print('{} CT slices found'.format(len(self.slices)))
@@ -504,6 +507,26 @@ class PatientCT(DicomPatient):
         for i, s in enumerate(self.slices):
             img2D = s.pixel_array
             self.img3D[:, :, i] = img2D
+
+    def CreateBodyMask(self, threshold=-600, write=False):
+        # Apply threshold to create a binary mask
+        binaryMask = self.img3D > threshold
+        # Remove small objects
+        structElement = ndimage.generate_binary_structure(3, 2)
+        openedMask = ndimage.binary_opening(binaryMask, structure=structElement)
+        # Fill holes inside the body using binary closing
+        closedMask = ndimage.binary_closing(openedMask, structure=structElement)
+        # Label connected components
+        labeledMask, numComponents = ndimage.label(closedMask)
+        # Get the largest connected component
+        largerstLabel = np.argmax(np.bincount(labeledMask.flatten())[1:]) + 1
+        # Create the final body mask
+        self.bodyMask = labeledMask == largerstLabel
+        if write:
+            structs = {}
+            structs['BODY'] = self.bodyMask
+            writer = RTStructWriter(structs, self.slices, 'EXTERNAL CONTOURS')
+            writer.write(self.dicomDirectory)
 
 class Patient3DActivity(DicomPatient):
     def __init__(self, dicomDirectory):
