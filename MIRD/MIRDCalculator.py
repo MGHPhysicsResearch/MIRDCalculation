@@ -216,23 +216,31 @@ class MIRDCalculator:
         self.doseAMGrid = self.doseAMGrid / fn
         self.patCT.WriteRTDose(name, self.doseAMGrid, unit)
         
-    def ExcludeExtraCorporealActivityThreshold(self, threshold = -900):
-        countIn = 0
-        shActMap = self.patActMap.img3D.shape
-        shCT = self.patCT.img3D.shape
-        for iax in range(0, shActMap[0]):
-            for iay in range(0, shActMap[1]):
-                for iaz in range(0, shActMap[2]):
-                   position = self.patActMap.GetVoxelDICOMPosition(iax, iay, iaz)
-                   indexes = self.patCT.GetLowerIndexesForDicomPosition(position)
-                   icx = int(indexes[0])
-                   icy = int(indexes[1])
-                   icz = int(indexes[2])
-                   if icx >= 0 and icx < shCT[0] and icy >= 0 and icy < shCT[1] and icz >=0 and icz < shCT[2]:
-                       if self.patCT.img3D[icx, icy, icz] >= threshold:
-                           countIn = countIn + self.patActMap.img3D[iax, iay, iaz]
-        self.patActMap.totalCounts = countIn    
-                
+    def ExcludeExtraCorporealActivityThreshold(self, threshold = -300):
+        self.patCT.CreateBodyMask(threshold)
+        ct_shape = self.patCT.bodyMask.shape
+        pet_shape = self.patActMap.img3D.shape
+
+        # Iterate through all voxels in the PET activity map
+        for ix in range(pet_shape[0]):
+            for iy in range(pet_shape[1]):
+                for iz in range(pet_shape[2]):
+                    # Get the corresponding DICOM position in the PET image
+                    pet_dicom_position = self.patActMap.GetVoxelDICOMPosition(ix, iy, iz)
+
+                    # Get the corresponding indices in the CT image
+                    ct_indices = self.patCT.GetLowerIndexesForDicomPosition(pet_dicom_position)
+                    ct_indices = ct_indices.astype(int)
+
+                    # Check if the CT indices are within the CT image bounds
+                    if (0 <= ct_indices[0] < ct_shape[0] and
+                            0 <= ct_indices[1] < ct_shape[1] and
+                            0 <= ct_indices[2] < ct_shape[2]):
+
+                        # If the voxel is outside the body mask, set the activity to 0
+                        if not self.patCT.bodyMask[ct_indices[0], ct_indices[1], ct_indices[2]]:
+                            self.patActMap.img3D[ix, iy, iz] = 0
+
     def __distance(self, pos1, pos2):
         pos1 = np.array(pos1)
         pos2 = np.array(pos2)
