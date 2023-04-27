@@ -11,8 +11,8 @@ import numpy as np
 import pydicom
 from pydicom import dcmread
 
-input_folder = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/workspace/Maitz-Data/TOPAS files/Y90_dogs/Bailey/Images/DICOM_01/0000/000/'
-output_folder = '/Users/ai925/Dropbox (Partners HealthCare)/RPT Project/workspace/Maitz-Data/TOPAS files/Y90_dogs/Bailey/Images/DICOM_01/0000/CT_corrected/'
+input_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/001'
+output_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/PET_corrected/'
 
 # Ensure the output folder exists
 os.makedirs(output_folder, exist_ok=True)
@@ -45,7 +45,7 @@ for ds in dicom_files:
         # Patient position
         ds.PatientPosition = 'HFS'
         # Patient orientatoin
-        ds.PatientOrientation = ['L', 'R']
+        ds.PatientOrientation = ['L', 'A']
 
     # Save the modified DICOM file to the output folder
     output_path = os.path.join(output_folder, ds.SOPInstanceUID + ".dcm")
