@@ -508,24 +508,30 @@ class PatientCT(DicomPatient):
             img2D = s.pixel_array
             self.img3D[:, :, i] = img2D
 
-    def CreateBodyMask(self, threshold=-600, write=False):
+    def CreateBodyMask(self, threshold=-300, write=False):
         # Apply threshold to create a binary mask
         binaryMask = self.img3D > threshold
         # Remove small objects
         structElement = ndimage.generate_binary_structure(3, 2)
-        openedMask = ndimage.binary_opening(binaryMask, structure=structElement)
+
+        # Process intermediate slices
+        for z in range(1, binaryMask.shape[2] - 1):
+            binaryMask[:, :, z] = ndimage.binary_opening(binaryMask[:, :, z], structure=structElement[1])
+            binaryMask[:, :, z] = ndimage.binary_closing(binaryMask[:, :, z], structure=structElement[1])
+
         # Fill holes inside the body using binary closing
-        closedMask = ndimage.binary_closing(openedMask, structure=structElement)
+        closedMask = binaryMask
         # Label connected components
         labeledMask, numComponents = ndimage.label(closedMask)
         # Get the largest connected component
-        largerstLabel = np.argmax(np.bincount(labeledMask.flatten())[1:]) + 1
+        largestLabel = np.argmax(np.bincount(labeledMask.flatten())[1:]) + 1
         # Create the final body mask
-        self.bodyMask = labeledMask == largerstLabel
+        self.bodyMask = labeledMask == largestLabel
+
         if write:
             structs = {}
             structs['BODY'] = self.bodyMask
-            writer = RTStructWriter(structs, self.slices, 'EXTERNAL CONTOURS')
+            writer = RTStructWriter(structs, self, 'Body_Contour')
             writer.write(self.dicomDirectory)
 
 class Patient3DActivity(DicomPatient):
