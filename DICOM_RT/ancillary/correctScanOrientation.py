@@ -9,7 +9,7 @@ Created on 4/24/23 12:14 PM
 import os
 from pydicom import dcmread
 
-input_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/PET_masked'
+input_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/001/'
 output_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/PET_corrected/'
 
 # Ensure the output folder exists
@@ -32,7 +32,10 @@ for ds in dicom_files:
     # Check if the ImageOrientationPatient is [1, 0, 0, 0, -1, 0]
     if ds.ImageOrientationPatient == [1, 0, 0, 0, -1, 0]:
         # Flip the pixel data vertically (along Y-axis)
-        ds.PixelData = ds.pixel_array[:, ::-1].tobytes()
+        flipped_pixel_array = ds.pixel_array[:, ::-1]
+
+        # Save the flipped pixel data
+        ds.PixelData = flipped_pixel_array.tobytes()
 
         # Update the ImagePositionPatient (origin) for the Y position
         ds.ImagePositionPatient[1] = ds.ImagePositionPatient[1] - (ds.Rows - 1) * ds.PixelSpacing[1]

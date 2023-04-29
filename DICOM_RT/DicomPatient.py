@@ -17,6 +17,7 @@ import matplotlib.pylab as plt
 from datetime import datetime
 
 from scipy import ndimage
+from scipy.interpolate import RegularGridInterpolator
 
 from DICOM_RT.StructureManager import Operations, RTStructWriter
 
@@ -426,30 +427,26 @@ class DicomPatient:
 
     def ApplyValueOutsideMask(self, mask, value, mask_dicomPatient=None):
         img_shape = self.img3D.shape
-
-        # Iterate through all voxels in the image
-        for ix in range(img_shape[0]):
-            for iy in range(img_shape[1]):
-                for iz in range(img_shape[2]):
-                    if mask_dicomPatient is None:
-                        if not mask[ix, iy, iz]:
-                            self.img3D[ix, iy, iz] = value
-                    else:
-                        mask_shape = mask_dicomPatient.img3D.shape
-                        # Get the corresponding DICOM position in the PET image
-                        dicom_position = self.GetVoxelDICOMPosition(ix, iy, iz)
-
-                        # Get the corresponding indices in the mask
-                        mask_indices = mask_dicomPatient.GetLowerIndexesForDicomPosition(dicom_position)
-                        mask_indices = mask_indices.astype(int)
-
-                        # Check if the CT indices are within the CT image bounds
-                        if (0 <= mask_indices[0] < mask_shape[0] and
-                                0 <= mask_indices[1] < mask_shape[1] and
-                                0 <= mask_indices[2] < mask_shape[2]):
-
-                            # If the voxel is outside the body mask, set the activity to value
-                            if not mask[mask_indices[0], mask_indices[1], mask_indices[2]]:
+        if mask_dicomPatient is not None:
+            mask_shape = mask_dicomPatient.img3D.shape
+            mask_grid_points = [
+                np.arange(mask_shape[0]) * mask_dicomPatient.pixelSpacing[1] + mask_dicomPatient.firstVoxelPosDICOMCoordinates[0],
+                np.arange(mask_shape[1]) * mask_dicomPatient.pixelSpacing[0] + mask_dicomPatient.firstVoxelPosDICOMCoordinates[1],
+                np.arange(mask_shape[2]) * mask_dicomPatient.sliceThickness + mask_dicomPatient.firstVoxelPosDICOMCoordinates[2]
+            ]
+            mask_interpolator = RegularGridInterpolator(mask_grid_points, mask.astype(float), method='linear', bounds_error=False, fill_value=0)
+            indices = np.array(np.meshgrid(np.arange(img_shape[0]), np.arange(img_shape[1]), np.arange(img_shape[2]), indexing='ij')).reshape(3, -1).T
+            dicom_positions = np.array([self.GetVoxelDICOMPosition(ix, iy, iz) for ix, iy, iz in indices])
+            mask_values = mask_interpolator(dicom_positions)
+            outside_mask = mask_values < 0.5
+            self.img3D.ravel()[outside_mask] = value
+        else:
+            # Iterate through all voxels in the image
+            for ix in range(img_shape[0]):
+                for iy in range(img_shape[1]):
+                    for iz in range(img_shape[2]):
+                        if mask_dicomPatient is None:
+                            if not mask[ix, iy, iz]:
                                 self.img3D[ix, iy, iz] = value
 
     def RewriteRTStructAsCompatible(self, rtstruct_file):
