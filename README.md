@@ -16,6 +16,7 @@ The interpolation method uses the inverse of the distance between each node in t
 - Adding feature to mask the body and remove extracorporeal activity from PET and SPECT scans
 # v2.3.1
 - Fixing problems with DICOM metadata when writing new PET and SPECT scans
+- New interpolation method for PET and SPECT scans
 
 ## Use (distributed version):
 Download the MIRDCalculator-2.0.0.tar.gz 
