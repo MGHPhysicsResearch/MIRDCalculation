@@ -39,7 +39,10 @@ class MIRDCalculator:
         self.Svalues = Svalues.SValuesData(radionuclide)
         self.accumulate = False
         
-    def CalculateOnActivityMapGrid(self, threshold = 0, tissue = 'Soft', normalize = False, accumulate = False):
+    def CalculateOnActivityMapGrid(self, threshold = 0, tissue = 'Soft', normalize = False, accumulate = False, usemask=True):
+        if usemask:
+            self.patCT.CreateBodyMask(write=False)
+            self.patActMap.ApplyValueOutsideMask(self.patCT.bodyMask, 0, self.patCT)
         shape = self.patActMap.img3D.shape
         self.doseAMGrid = np.zeros(shape)
         maxDistance = self.Svalues.maximumDistanceInVoxels

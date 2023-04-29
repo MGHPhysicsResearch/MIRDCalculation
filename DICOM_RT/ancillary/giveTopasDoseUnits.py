@@ -6,7 +6,7 @@ basePath = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/'
 doseFile = 'DoseOnCTGrid.dcm'
 
 # 2. Simulation parameters
-nHistories = 1e5
+nHistories = 1e6
 desiredUnit = 'Gy/GBq'
 
 # 3. Load patient and dose

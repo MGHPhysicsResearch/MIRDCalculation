@@ -26,7 +26,7 @@ unit = 'Gy/GBq'
 # 5. If accumulated activity, calcs assume stationary activity until complete decay
 accum = True
 # 6. Threshold of counts to be considered in activity map (to speed up calculation)
-countThreshold = 50000
+countThreshold = 100
 # 7. Name of the RTDOSE output file
 nameDcm = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/MIRDDose.dcm'
 #############################################3

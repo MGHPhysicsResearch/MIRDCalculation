@@ -583,7 +583,6 @@ class Patient3DActivity(DicomPatient):
             self.ReadPixelValuesSlices()
             self.Rescale()
             self.GetFrameOfReferenceSlices()
-        self.totalCounts = np.sum(self.img3D)
         
     def GetFrameOfReference3D(self):
         self.forUID = self.dcmFiles[0].FrameOfReferenceUID
@@ -683,6 +682,10 @@ class Patient3DActivity(DicomPatient):
                 new_file.is_little_endian = slices[0].is_little_endian
                 new_file.is_implicit_VR = slices[0].is_implicit_VR
                 new_file.save_as(filepath)
+
+    @property
+    def totalCounts(self):
+        return self.img3D.sum()
 
 class QoIDistribution:
     def __init__(self, array = None, quantity = None, unit = None):
