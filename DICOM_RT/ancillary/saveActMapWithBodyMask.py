@@ -1,9 +1,9 @@
 from DICOM_RT import DicomPatient as dcmpat
 
-nm_folder = '/Users/ai925/workspace/LiverPatient11/NM/'
-ct_folder = '/Users/ai925/workspace/LiverPatient11/CT/'
+nm_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/001/'
+ct_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/000/'
 
-new_nm_folder = '/Users/ai925/workspace/LiverPatient11/NM_masked/'
+new_nm_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/PET_masked/'
 
 # 1. Load patient and calculate body mask
 ctPatient = dcmpat.PatientCT(ct_folder)

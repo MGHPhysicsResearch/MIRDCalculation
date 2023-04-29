@@ -9,7 +9,7 @@ Created on 4/24/23 12:14 PM
 import os
 from pydicom import dcmread
 
-input_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/001'
+input_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/PET_masked'
 output_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/PET_corrected/'
 
 # Ensure the output folder exists
@@ -17,7 +17,7 @@ os.makedirs(output_folder, exist_ok=True)
 
 # Read all DICOM files from the input folder into a list
 dicom_files = [
-    dcmread(os.path.join(input_folder, f))
+    dcmread(os.path.join(input_folder, f), force=True)
     for f in os.listdir(input_folder)
 ]
 

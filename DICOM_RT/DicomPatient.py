@@ -639,10 +639,12 @@ class Patient3DActivity(DicomPatient):
                 filename = str(i) + '.dcm'
                 filepath = os.path.join(path, filename)
                 if os.access(path, os.W_OK):
-                    # Create a new DICOM slice
-                    new_slice = pydicom.Dataset()
-                    new_slice.update(s)
+                    # Create a new DICOM slice and update its metadata
+                    new_slice = pydicom.dcmread(s.filename)
                     new_slice.SOPInstanceUID = pydicom.uid.generate_uid()  # Generate a new UID
+                    # Conditionally set the TransferSyntaxUID if it exists in the original file
+                    if hasattr(s.file_meta, 'TransferSyntaxUID'):
+                        new_slice.file_meta.TransferSyntaxUID = s.file_meta.TransferSyntaxUID
                     # Update pixel_array with the correct data type
                     if s.pixel_array.dtype == np.uint16:
                         new_pixel_data = (normalized_img[:, :, i] * np.iinfo(np.uint16).max).astype(np.uint16).tobytes()
@@ -666,7 +668,10 @@ class Patient3DActivity(DicomPatient):
             transposed_img = np.transpose(normalized_img, (2, 0, 1))
             if os.access(path, os.W_OK):
                 # Create a new DICOM file
-                new_file = pydicom.Dataset()
+                new_file = pydicom.dcmread(slices[0].filename)
+                # Conditionally set the TransferSyntaxUID if it exists in the original file
+                if hasattr(slices[0].file_meta, 'TransferSyntaxUID'):
+                    new_file.file_meta.TransferSyntaxUID = slices[0].file_meta.TransferSyntaxUID
                 new_file.update(slices[0])
                 new_file.SOPInstanceUID = pydicom.uid.generate_uid()  # Generate a new UID
                 # Update pixel_array with the correct data type
