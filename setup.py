@@ -16,7 +16,7 @@ URL = 'https://github.com/mghro/MIRDCalculation'
 EMAIL = 'abertoletreina@mgh.harvard.edu'
 AUTHOR = 'Alejandro Bertolet'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '2.2.0'
+VERSION = '2.3.0'
 
 # Required packages for this module to be executed
 REQUIRED = ['numpy', 'pydicom', 'rt_utils']
