@@ -54,11 +54,12 @@ class DicomPatient:
         self.sagAspect = self.pixelSpacing[1] / self.sliceThickness
         self.corAspect = self.sliceThickness / self.pixelSpacing[0]
         # Check orientation
-        self.orientation = self.dcmFiles[0].ImageOrientationPatient
-        if self.orientation[0] == -1:
-            self.pixelSpacing[1] = -self.pixelSpacing[1]
-        if self.orientation[4] == -1:
-            self.pixelSpacing[0] = -self.pixelSpacing[0]
+        if hasattr(self.dcmFiles[0], 'ImageOrientationPatient'):
+            self.orientation = self.dcmFiles[0].ImageOrientationPatient
+            if self.orientation[0] == -1:
+                self.pixelSpacing[1] = -self.pixelSpacing[1]
+            if self.orientation[4] == -1:
+                self.pixelSpacing[0] = -self.pixelSpacing[0]
         
     def GetVoxelDICOMPosition(self, ix, iy, iz):
         xpos = self.firstVoxelPosDICOMCoordinates[0] + ix * self.pixelSpacing[1]
@@ -628,12 +629,16 @@ class Patient3DActivity(DicomPatient):
         img_max = self.img3D.max()
         normalized_img = (self.img3D - img_min) / (img_max - img_min)
 
-        for i, s in enumerate(self.slices):
-            # Strip filename and get rid of the path
-            filename = str(i) + '.dcm'
-            filepath = os.path.join(path, filename)
-            if os.access(path, os.W_OK):
-                if s.is_implicit_VR:
+        if hasattr(self, 'slices'):
+            slices = self.slices
+        else:
+            slices = self.dcmFiles
+        if len(slices) > 1:
+            for i, s in enumerate(slices):
+                # Strip filename and get rid of the path
+                filename = str(i) + '.dcm'
+                filepath = os.path.join(path, filename)
+                if os.access(path, os.W_OK):
                     # Create a new DICOM slice
                     new_slice = pydicom.Dataset()
                     new_slice.update(s)
@@ -650,10 +655,32 @@ class Patient3DActivity(DicomPatient):
                     new_slice.is_implicit_VR = s.is_implicit_VR
                     new_slice.save_as(filepath)
                 else:
-                    s.pixel_array = normalized_img[:, :, i]
-                    s.save_as(filepath)
-            else:
-                print('Cannot write to file {}'.format(filepath))
+                    print('Cannot write to file {}'.format(filepath))
+        else:
+            filename = '0.dcm'
+            filepath = os.path.join(path, filename)
+            # Normalize the pixel values in self.img3D
+            img_min = self.img3D.min()
+            img_max = self.img3D.max()
+            normalized_img = (self.img3D - img_min) / (img_max - img_min)
+            transposed_img = np.transpose(normalized_img, (2, 0, 1))
+            if os.access(path, os.W_OK):
+                # Create a new DICOM file
+                new_file = pydicom.Dataset()
+                new_file.update(slices[0])
+                new_file.SOPInstanceUID = pydicom.uid.generate_uid()  # Generate a new UID
+                # Update pixel_array with the correct data type
+                if slices[0].pixel_array.dtype == np.uint16:
+                    new_pixel_data = (transposed_img * np.iinfo(np.uint16).max).astype(np.uint16).tobytes()
+                elif slices[0].pixel_array.dtype == np.uint8:
+                    new_pixel_data = (transposed_img * np.iinfo(np.uint8).max).astype(np.uint8).tobytes()
+                else:
+                    raise Exception('Unknown data type: {}'.format(slices[0].pixel_array.dtype))
+                new_file.PixelData = new_pixel_data
+                new_file.Rows, new_file.Columns = transposed_img.shape[:2]
+                new_file.is_little_endian = slices[0].is_little_endian
+                new_file.is_implicit_VR = slices[0].is_implicit_VR
+                new_file.save_as(filepath)
 
 class QoIDistribution:
     def __init__(self, array = None, quantity = None, unit = None):
