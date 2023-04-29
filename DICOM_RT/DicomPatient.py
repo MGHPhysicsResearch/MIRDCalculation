@@ -5,7 +5,7 @@ Created on Thu May 27 16:09:19 2021
 
 @author: alejandrobertolet
 """
-
+import os
 from os import listdir
 from typing import List, Any
 
@@ -423,6 +423,34 @@ class DicomPatient:
                         pass
         return doseCTgrid
 
+    def ApplyValueOutsideMask(self, mask, value, mask_dicomPatient=None):
+        img_shape = self.img3D.shape
+
+        # Iterate through all voxels in the image
+        for ix in range(img_shape[0]):
+            for iy in range(img_shape[1]):
+                for iz in range(img_shape[2]):
+                    if mask_dicomPatient is None:
+                        if not mask[ix, iy, iz]:
+                            self.img3D[ix, iy, iz] = value
+                    else:
+                        mask_shape = mask_dicomPatient.img3D.shape
+                        # Get the corresponding DICOM position in the PET image
+                        dicom_position = self.GetVoxelDICOMPosition(ix, iy, iz)
+
+                        # Get the corresponding indices in the mask
+                        mask_indices = mask_dicomPatient.GetLowerIndexesForDicomPosition(dicom_position)
+                        mask_indices = mask_indices.astype(int)
+
+                        # Check if the CT indices are within the CT image bounds
+                        if (0 <= mask_indices[0] < mask_shape[0] and
+                                0 <= mask_indices[1] < mask_shape[1] and
+                                0 <= mask_indices[2] < mask_shape[2]):
+
+                            # If the voxel is outside the body mask, set the activity to value
+                            if not mask[mask_indices[0], mask_indices[1], mask_indices[2]]:
+                                self.img3D[ix, iy, iz] = value
+
     def RewriteRTStructAsCompatible(self, rtstruct_file):
         # Load the RTSTRUCT file
         rtstruct = pydicom.dcmread(rtstruct_file)
@@ -583,7 +611,50 @@ class Patient3DActivity(DicomPatient):
         for i, s in enumerate(self.slices):
             img2D = s.pixel_array
             self.img3D[:, :, i] = img2D
-   
+
+    def WriteWithNewImg3D(self, path=None):
+        if path is None:
+            path = self.dicomDirectory
+        else:
+            if not os.path.exists(path):
+                # Create writeable directory
+                os.makedirs(path, exist_ok=True, mode=0o777)
+            else:
+                # Check if directory is writeable and make it writeable if not.
+                if not os.access(path, os.W_OK):
+                    os.chmod(path, 0o777)
+        # Normalize the pixel values in self.img3D
+        img_min = self.img3D.min()
+        img_max = self.img3D.max()
+        normalized_img = (self.img3D - img_min) / (img_max - img_min)
+
+        for i, s in enumerate(self.slices):
+            # Strip filename and get rid of the path
+            filename = str(i) + '.dcm'
+            filepath = os.path.join(path, filename)
+            if os.access(path, os.W_OK):
+                if s.is_implicit_VR:
+                    # Create a new DICOM slice
+                    new_slice = pydicom.Dataset()
+                    new_slice.update(s)
+                    new_slice.SOPInstanceUID = pydicom.uid.generate_uid()  # Generate a new UID
+                    # Update pixel_array with the correct data type
+                    if s.pixel_array.dtype == np.uint16:
+                        new_pixel_data = (normalized_img[:, :, i] * np.iinfo(np.uint16).max).astype(np.uint16).tobytes()
+                    elif s.pixel_array.dtype == np.uint8:
+                        new_pixel_data = (normalized_img[:, :, i] * np.iinfo(np.uint8).max).astype(np.uint8).tobytes()
+                    else:
+                        raise Exception('Unknown data type: {}'.format(s.pixel_array.dtype))
+                    new_slice.PixelData = new_pixel_data
+                    new_slice.is_little_endian = s.is_little_endian
+                    new_slice.is_implicit_VR = s.is_implicit_VR
+                    new_slice.save_as(filepath)
+                else:
+                    s.pixel_array = normalized_img[:, :, i]
+                    s.save_as(filepath)
+            else:
+                print('Cannot write to file {}'.format(filepath))
+
 class QoIDistribution:
     def __init__(self, array = None, quantity = None, unit = None):
         self.array = array

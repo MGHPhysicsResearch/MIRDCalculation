@@ -7,8 +7,6 @@ Created on 4/24/23 12:14 PM
 """
 
 import os
-import numpy as np
-import pydicom
 from pydicom import dcmread
 
 input_folder = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/001'
