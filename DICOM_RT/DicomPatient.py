@@ -425,7 +425,7 @@ class DicomPatient:
                         pass
         return doseCTgrid
 
-    def ApplyValueOutsideMask(self, mask, value, mask_dicomPatient=None):
+    def ApplyValueOutsideMask(self, mask, value, mask_dicomPatient=None, correct_background=False):
         img_shape = self.img3D.shape
         if mask_dicomPatient is not None:
             mask_shape = mask_dicomPatient.img3D.shape
@@ -438,9 +438,19 @@ class DicomPatient:
             indices = np.array(np.meshgrid(np.arange(img_shape[0]), np.arange(img_shape[1]), np.arange(img_shape[2]), indexing='ij')).reshape(3, -1).T
             dicom_positions = np.array([self.GetVoxelDICOMPosition(ix, iy, iz) for ix, iy, iz in indices])
             mask_values = mask_interpolator(dicom_positions)
-            outside_mask = mask_values < 0.5
-            self.img3D.ravel()[outside_mask] = value
+            mask_values = mask_values.reshape(img_shape)
+            outside_mask_indices = np.where(mask_values < 0.5)
+            if correct_background:
+                background_values = self.img3D[outside_mask_indices]
+                mean_background = np.mean(background_values)
+                inside_mask_indices = np.where(mask_values >= 0.5)
+                corrected_values = self.img3D[inside_mask_indices] - mean_background
+                self.img3D[inside_mask_indices] = np.maximum(value, corrected_values)
+            self.img3D[outside_mask_indices] = value
         else:
+            if correct_background:
+                background_values = self.img3D[np.logical_not(mask)]
+                mean_background = np.mean(background_values)
             # Iterate through all voxels in the image
             for ix in range(img_shape[0]):
                 for iy in range(img_shape[1]):
@@ -448,6 +458,9 @@ class DicomPatient:
                         if mask_dicomPatient is None:
                             if not mask[ix, iy, iz]:
                                 self.img3D[ix, iy, iz] = value
+                            elif correct_background:
+                                corrected_value = self.img3D[ix, iy, iz] - mean_background
+                                self.img3D[ix, iy, iz] = max(value, corrected_value)
 
     def RewriteRTStructAsCompatible(self, rtstruct_file):
         # Load the RTSTRUCT file

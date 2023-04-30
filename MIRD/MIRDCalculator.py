@@ -15,7 +15,8 @@ from MIRD import Svalues
 mCi = 37 #1mCi = 37 MBq
 Gy = 1e3 #1 Gy = 1000 mGy
 
-def GetMIRDDoseInDICOM(basepath, nameDicom, radionuclide, tissue = 'Soft', norm = True, unit = 'Gy/mCi', accum = True, countThreshold = 0, ct_path = '', nm_path = ''):
+def GetMIRDDoseInDICOM(basepath, nameDicom, radionuclide, tissue='Soft', norm=True, unit='Gy/mCi', accum=True,
+                       countThreshold=0, ct_path='', nm_path='', correct_background=False):
     if ct_path == '':
         ctpath = basepath + 'CT/'
     else:
@@ -26,7 +27,7 @@ def GetMIRDDoseInDICOM(basepath, nameDicom, radionuclide, tissue = 'Soft', norm 
         nmpath = nm_path
     outputPath = basepath + nameDicom
     calc = MIRDCalculator(ctpath, nmpath, radionuclide)
-    calc.ExcludeExtraCorporealActivityThreshold()
+    calc.ExcludeExtraCorporealActivityThreshold(correct_background=correct_background)
     calc.CalculateOnActivityMapGrid(countThreshold, tissue, norm, accum)
     calc.DoseInterpolationToCTGrid()
     calc.WriteRTDoseCT(outputPath, unit)
@@ -39,10 +40,10 @@ class MIRDCalculator:
         self.Svalues = Svalues.SValuesData(radionuclide)
         self.accumulate = False
         
-    def CalculateOnActivityMapGrid(self, threshold = 0, tissue = 'Soft', normalize = False, accumulate = False, usemask=True):
+    def CalculateOnActivityMapGrid(self, threshold=0, tissue='Soft', normalize=False, accumulate=False, usemask=True, correct_background=True):
         if usemask:
             self.patCT.CreateBodyMask(write=False)
-            self.patActMap.ApplyValueOutsideMask(self.patCT.bodyMask, 0, self.patCT)
+            self.patActMap.ApplyValueOutsideMask(self.patCT.bodyMask, 0, self.patCT, correct_background=correct_background)
         shape = self.patActMap.img3D.shape
         self.doseAMGrid = np.zeros(shape)
         maxDistance = self.Svalues.maximumDistanceInVoxels
@@ -219,10 +220,10 @@ class MIRDCalculator:
         self.doseAMGrid = self.doseAMGrid / fn
         self.patCT.WriteRTDose(name, self.doseAMGrid, unit)
         
-    def ExcludeExtraCorporealActivityThreshold(self, threshold=-300):
+    def ExcludeExtraCorporealActivityThreshold(self, threshold=-300, correct_background=True):
         self.patCT.CreateBodyMask(threshold)
         mask = self.patCT.bodyMask
-        self.patActMap.ApplyValueOutsideMask(mask, 0, self.patCT)
+        self.patActMap.ApplyValueOutsideMask(mask, 0, self.patCT, correct_background=correct_background)
 
     def __distance(self, pos1, pos2):
         pos1 = np.array(pos1)

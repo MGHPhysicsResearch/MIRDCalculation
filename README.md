@@ -1,4 +1,4 @@
-# MIRDCalculator v2.3.1
+# MIRDCalculator v2.4.0
 Python application to calculate internal dosimetry following MIRD formulation
 
 This python-based application calculates doses in Nuclear Medicine applications.
@@ -7,22 +7,24 @@ Supported radionuclides in this database are 89Sr, 90Y, 131I, 153Sm, 177Lu, 186R
 Dose is calculated using the voxel sizes in the activity map and then it is interpolated to the CT grid.
 The interpolation method uses the inverse of the distance between each node in the CT grid and the 8 closest nodes in the SPECT/PET grid to weight each contribution.
 
-# New features in v2 (including v2.3.0):
+# New features in v2 (including v2.4.0):
 - Calculation of BED, EUD, EQDX, EUBED, EUQDX
 - Visualization and storing DVHs
 - Boolean operations with structures to visualize on DVH
 - Supporting PET image and multiple DICOM orientations
 - Module to produce dosimetry reports
 - Adding feature to mask the body and remove extracorporeal activity from PET and SPECT scans
+# v2.4.0
+- Adding the feature of correcting the activity map for the background activity measured outside the body mask
 # v2.3.1
 - Fixing problems with DICOM metadata when writing new PET and SPECT scans
 - New interpolation method for PET and SPECT scans
 
 ## Use (distributed version):
-Download the MIRDCalculator-2.0.0.tar.gz 
+Download the MIRDCalculator-2.4.0.tar.gz 
 Install using pip via:
   
-  `pip install MIRDCalculator-2.3.1.tar.gz`
+  `pip install MIRDCalculator-2.4.0.tar.gz`
 
 You can import two modules: MIRD and DICOM_RT (for dealing with DICOM features)
 To calculate MIRD dose and store it in DICOM RTDOSE format you need:

@@ -11,7 +11,7 @@ ctPatient.CreateBodyMask(write=False)
 
 # 2. Load PET and apply mask
 nmPatient = dcmpat.Patient3DActivity(nm_folder)
-nmPatient.ApplyValueOutsideMask(ctPatient.bodyMask, 0, ctPatient)
+nmPatient.ApplyValueOutsideMask(ctPatient.bodyMask, 0, ctPatient, correct_background=True)
 
 # 3. Save new dicom files
 nmPatient.WriteWithNewImg3D(new_nm_folder)

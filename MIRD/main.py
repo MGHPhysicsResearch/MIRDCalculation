@@ -33,7 +33,7 @@ nameDcm = '/Users/ai925/workspace/Bailey/Images/DICOM_01/0000/MIRDDose.dcm'
 
 # Main script
 calc = MIRDCalculator(ctpath, nmpath, radionuclide)
-calc.CalculateOnActivityMapGrid(countThreshold, tissue, norm, accum)
+calc.CalculateOnActivityMapGrid(countThreshold, tissue, norm, accum, correct_background=True)
 calc.DoseInterpolationToCTGrid()
 calc.WriteRTDoseCT(nameDcm, unit)
 dosepre = calc.doseCTgrid
