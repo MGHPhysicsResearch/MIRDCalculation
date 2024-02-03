@@ -9,6 +9,7 @@ import os
 from os import listdir
 from typing import List, Any
 
+
 import numpy as np
 import pydicom
 from rt_utils import RTStructBuilder
@@ -20,6 +21,9 @@ from scipy import ndimage
 from scipy.interpolate import RegularGridInterpolator
 
 from DICOM_RT.StructureManager import Operations, RTStructWriter
+
+import open3d as o3d
+import measure as measure
 
 class DicomPatient:
     def __init__(self, dicomDirectory):
@@ -236,15 +240,49 @@ class DicomPatient:
         else:
             ROINames = ROIsList
         structures3DList = []
+        meshes3DList = []
         self.ROINames = []
         for s in ROINames:
             try:
                 structures3DList.append(rtstruct.get_roi_mask_by_name(s))
+                meshes3DList.append(self.CreatingMeshFromMask(rtstruct.get_roi_mask_by_name(s)))
                 self.ROINames.append(s)
             except:
                 print("Structure " + s + " could not be read.")
         self.structures3D = dict(zip(self.ROINames, structures3DList))
         print('Structures loaded.')
+        self.meshes3D = dict(zip(self.ROINames, meshes3DList))
+        print('Meshes created')
+
+    def CreatingMeshFromMask(self, BinaryMask):
+        verts, faces, _, _ = measure.marching_cubes(BinaryMask, level=0)
+        # Create a mesh from the vertices and faces
+        vertices = np.zeros((len(verts), 3))
+        vertices[:, 0] = self.firstVoxelPosDICOMCoordinates[0] + verts[:, 0] * self.pixelSpacing[0]
+        vertices[:, 1] = self.firstVoxelPosDICOMCoordinates[1] + verts[:, 1] * self.pixelSpacing[1]
+        vertices[:, 2] = self.firstVoxelPosDICOMCoordinates[2] + verts[:, 2] * self.sliceThickness
+        o3d_mesh = o3d.geometry.TriangleMesh()
+        o3d_mesh.vertices = o3d.utility.Vector3dVector(vertices)
+        o3d_mesh.triangles = o3d.utility.Vector3iVector(faces)
+        return o3d_mesh
+
+    def PlottingMesh(self, ROIName, color='red', alpha = 0.5):
+        mesh = self.meshes3D[ROIName]
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_trisurf(np.asarray(mesh.vertices)[:, 0], np.asarray(mesh.vertices)[:, 1],
+                        np.asarray(mesh.vertices)[:, 2],
+                        triangles=np.asarray(mesh.triangles), color=color, alpha=alpha)
+        ax.view_init(elev=13.68506493506494, azim=-133.05194805194807)
+        ax.set_box_aspect([1, 1, 1])
+        ax.grid(False)
+        ax.set_xlabel('Left-to-Right')
+        ax.set_ylabel('Posterior-to-Anterior')
+        ax.set_zlabel('Superior-to-Inferior')
+        plt.show()
+
+    def PlottingMesh_open3D(self, ROIName):
+        o3d.visualization.draw_geometries([self.meshes3D[ROIName]])
 
     def addNewBooleanStructure(self, operation, ROI1, ROI2, newname=None):
         if type(ROI2) is list:
