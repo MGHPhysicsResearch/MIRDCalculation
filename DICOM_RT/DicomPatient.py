@@ -305,8 +305,6 @@ class DicomPatient:
         true_voxels = np.count_nonzero(self.structures3D[ROIName])
         return voxel_volume * true_voxels * 0.001
 
-    def
-
     def addNewBooleanStructure(self, operation, ROI1, ROI2, newname=None):
         if type(ROI2) is list:
             struct2 = self.structures3D[ROI2[0]]
