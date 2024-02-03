@@ -83,7 +83,7 @@ class DicomPatient:
         x_indexs = np.where(self.structures3D[ROIName][0])
         y_indexs =  np.where(self.structures3D[ROIName][1])
         z_indexs = np.where(self.structures3D[ROIName][2])
-        if np.isin(index[0], x_indexs) and np.isin(index[1], y_indexs) and np.isin(index[2], z_indexs)
+        if np.isin(index[0], x_indexs) and np.isin(index[1], y_indexs) and np.isin(index[2], z_indexs):
             return True
         else:
             return False
