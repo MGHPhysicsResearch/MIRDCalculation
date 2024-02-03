@@ -71,6 +71,22 @@ class DicomPatient:
         ypos = self.firstVoxelPosDICOMCoordinates[1] + iy * self.pixelSpacing[0]
         zpos = self.firstVoxelPosDICOMCoordinates[2] + iz * self.sliceThickness
         return np.array([xpos, ypos, zpos])
+
+    def GetVoxelDICOMIndex(self, xpos, ypos, zpos):
+        ix = round(abs(xpos - self.firstVoxelPosDICOMCoordinates[0])/self.pixelSpacing[0])
+        iy = round(abs(ypos - self.firstVoxelPosDICOMCoordinates[1])/self.pixelSpacing[1])
+        iz = round(abs(zpos - self.firstVoxelPosDICOMCoordinates[2])/self.sliceThickness)
+        return np.array([ix, iy, iz])
+
+    def is_point_inside_contour(self, vector_point, ROIName):
+        index = self.GetVoxelDICOMIndex(vector_point[0], vector_point[1], vector_point[2])
+        x_indexs = np.where(self.structures3D[ROIName][0])
+        y_indexs =  np.where(self.structures3D[ROIName][1])
+        z_indexs = np.where(self.structures3D[ROIName][2])
+        if np.isin(index[0], x_indexs) and np.isin(index[1], y_indexs) and np.isin(index[2], z_indexs)
+            return True
+        else:
+            return False
     
     def GetLowerIndexesForDicomPosition(self, position):
         xini = self.firstVoxelPosDICOMCoordinates[0]
@@ -283,6 +299,13 @@ class DicomPatient:
 
     def PlottingMesh_open3D(self, ROIName):
         o3d.visualization.draw_geometries([self.meshes3D[ROIName]])
+
+    def get_volume_roi(self, ROIName):
+        voxel_volume = self.pixelSpacing[0] * self.pixelSpacing[1] * self.sliceThickness
+        true_voxels = np.count_nonzero(self.structures3D[ROIName])
+        return voxel_volume * true_voxels * 0.001
+
+    def
 
     def addNewBooleanStructure(self, operation, ROI1, ROI2, newname=None):
         if type(ROI2) is list:
