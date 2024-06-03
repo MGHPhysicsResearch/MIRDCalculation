@@ -656,9 +656,10 @@ class Patient3DActivity(DicomPatient):
                         new_slice.file_meta.TransferSyntaxUID = s.file_meta.TransferSyntaxUID
                     # Update pixel_array with the correct data type
                     if s.pixel_array.dtype == np.uint16:
-                        new_pixel_data = (normalized_img[:, :, i] * np.iinfo(np.uint16).max).astype(np.uint16).tobytes()
+                        new_pixel_data = (normalized_img[:, :, i] / 2 * np.iinfo(np.uint16).max).astype(
+                                np.uint16).tobytes()
                     elif s.pixel_array.dtype == np.uint8:
-                        new_pixel_data = (normalized_img[:, :, i] * np.iinfo(np.uint8).max).astype(np.uint8).tobytes()
+                        new_pixel_data = (normalized_img[:, :, i] / 2 * np.iinfo(np.uint8).max).astype(np.uint8).tobytes()
                     else:
                         raise Exception('Unknown data type: {}'.format(s.pixel_array.dtype))
                     new_slice.PixelData = new_pixel_data
